@@ -35,6 +35,8 @@ tests/
 | `get_player_pitching_stats` | Pitching stats; filter by `year`, `pid`, `split` |
 | `get_player_fielding_stats` | Fielding stats by position; filter by `year`, `pid`, `split` |
 | `get_players` | Player roster with names and team assignments; filter by `team_id` |
+| `get_contracts` | All current and active player contracts |
+| `get_contract_extensions` | Signed extensions taking effect in future seasons |
 | `get_teams` | Team list with IDs and abbreviations |
 | `get_draft` | Draft picks; optionally filter by league `lid` |
 | `get_exports` | CSV export of all games (scores, pitchers, dates) |
