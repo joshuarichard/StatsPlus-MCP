@@ -159,6 +159,62 @@ export interface DraftPick {
   "Time (UTC)": string;
 }
 
+// ---- Player Fielding Stats ----
+// Columns: id,player_id,year,team_id,league_id,level_id,split_id,position,
+//          tc,a,po,er,ip,g,gs,e,dp,tp,pb,sba,rto,ipf,plays,plays_base,roe,
+//          opps_0,opps_made_0,opps_1,opps_made_1,opps_2,opps_made_2,
+//          opps_3,opps_made_3,opps_4,opps_made_4,opps_5,opps_made_5,
+//          framing,arm,zr
+
+export interface PlayerFieldStatsParams {
+  year?: number;
+  pid?: number;
+  split?: SplitId;
+}
+
+export interface PlayerFieldStatLine {
+  id: number;
+  player_id: number;
+  year: number;
+  team_id: number;
+  league_id: number;
+  level_id: number;
+  split_id: number;
+  position: number;
+  tc: number;
+  a: number;
+  po: number;
+  er: number;
+  ip: number;
+  g: number;
+  gs: number;
+  e: number;
+  dp: number;
+  tp: number;
+  pb: number;
+  sba: number;
+  rto: number;
+  ipf: number;
+  plays: number;
+  plays_base: number;
+  roe: number;
+  opps_0: number;
+  opps_made_0: number;
+  opps_1: number;
+  opps_made_1: number;
+  opps_2: number;
+  opps_made_2: number;
+  opps_3: number;
+  opps_made_3: number;
+  opps_4: number;
+  opps_made_4: number;
+  opps_5: number;
+  opps_made_5: number;
+  framing: number;
+  arm: number;
+  zr: number;
+}
+
 // ---- Players ----
 // Columns: ID,"First Name","Last Name","Team ID","Parent Team ID",Level,Pos,Role,Age,Retired
 

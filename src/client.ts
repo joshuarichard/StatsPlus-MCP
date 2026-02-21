@@ -4,6 +4,8 @@ import type {
   PlayerBatStatLine,
   PlayerPitchStatsParams,
   PlayerPitchStatLine,
+  PlayerFieldStatsParams,
+  PlayerFieldStatLine,
   Team,
   DraftParams,
   DraftPick,
@@ -121,6 +123,14 @@ export class StatsPlusClient {
 
   async getPlayerBatStats(params: PlayerBatStatsParams = {}): Promise<PlayerBatStatLine[]> {
     return this.getCsv<PlayerBatStatLine>("/playerbatstatsv2/", {
+      year: params.year,
+      pid: params.pid,
+      split: params.split,
+    });
+  }
+
+  async getPlayerFieldStats(params: PlayerFieldStatsParams = {}): Promise<PlayerFieldStatLine[]> {
+    return this.getCsv<PlayerFieldStatLine>("/playerfieldstatsv2/", {
       year: params.year,
       pid: params.pid,
       split: params.split,

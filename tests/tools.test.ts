@@ -6,6 +6,7 @@ function makeMockClient(overrides: Partial<StatsPlusClient> = {}): StatsPlusClie
   return {
     getPlayerBatStats: vi.fn().mockResolvedValue([]),
     getPlayerPitchStats: vi.fn().mockResolvedValue([]),
+    getPlayerFieldStats: vi.fn().mockResolvedValue([]),
     getTeams: vi.fn().mockResolvedValue([]),
     getDraft: vi.fn().mockResolvedValue([]),
     getExports: vi.fn().mockResolvedValue(""),
@@ -15,14 +16,15 @@ function makeMockClient(overrides: Partial<StatsPlusClient> = {}): StatsPlusClie
 }
 
 describe("toolDefinitions", () => {
-  it("exports 6 tool definitions", () => {
-    expect(toolDefinitions).toHaveLength(6);
+  it("exports 7 tool definitions", () => {
+    expect(toolDefinitions).toHaveLength(7);
   });
 
   it("includes expected tool names", () => {
     const names = toolDefinitions.map((t) => t.name);
     expect(names).toContain("get_player_batting_stats");
     expect(names).toContain("get_player_pitching_stats");
+    expect(names).toContain("get_player_fielding_stats");
     expect(names).toContain("get_teams");
     expect(names).toContain("get_draft");
     expect(names).toContain("get_exports");
@@ -64,6 +66,31 @@ describe("handleTool", () => {
       const stats = [{ pid: 1, avg: 0.3 }];
       const client = makeMockClient({ getPlayerBatStats: vi.fn().mockResolvedValue(stats) });
       const result = await handleTool("get_player_batting_stats", {}, client);
+      expect(result).toEqual(stats);
+    });
+  });
+
+  describe("get_player_fielding_stats", () => {
+    it("calls getPlayerFieldStats with no args", async () => {
+      const client = makeMockClient();
+      await handleTool("get_player_fielding_stats", {}, client);
+      expect(client.getPlayerFieldStats).toHaveBeenCalledWith({
+        year: undefined,
+        pid: undefined,
+        split: undefined,
+      });
+    });
+
+    it("passes year, pid, and split to getPlayerFieldStats", async () => {
+      const client = makeMockClient();
+      await handleTool("get_player_fielding_stats", { year: 2024, pid: 7, split: 2 }, client);
+      expect(client.getPlayerFieldStats).toHaveBeenCalledWith({ year: 2024, pid: 7, split: 2 });
+    });
+
+    it("returns result from client", async () => {
+      const stats = [{ player_id: 1, position: 6, e: 5 }];
+      const client = makeMockClient({ getPlayerFieldStats: vi.fn().mockResolvedValue(stats) });
+      const result = await handleTool("get_player_fielding_stats", {}, client);
       expect(result).toEqual(stats);
     });
   });

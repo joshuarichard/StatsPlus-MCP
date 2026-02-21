@@ -17,6 +17,16 @@ export const toolDefinitions = [
     }),
   },
   {
+    name: "get_player_fielding_stats",
+    description:
+      "Retrieve player fielding statistics by position. Returns stat lines with splits. Omit all params to get all players for all seasons.",
+    inputSchema: z.object({
+      year: z.number().int().min(1900).max(2100).optional().describe("Season year, e.g. 2024"),
+      pid: z.number().int().positive().optional().describe("Player ID for a single player"),
+      split: splitIdSchema,
+    }),
+  },
+  {
     name: "get_player_pitching_stats",
     description:
       "Retrieve player pitching statistics. Returns stat lines with splits. Omit all params to get all players for all seasons.",
@@ -61,6 +71,13 @@ export async function handleTool(
   client: StatsPlusClient
 ): Promise<unknown> {
   switch (name) {
+    case "get_player_fielding_stats":
+      return client.getPlayerFieldStats({
+        year: args.year as number | undefined,
+        pid: args.pid as number | undefined,
+        split: args.split as 1 | 2 | 3 | undefined,
+      });
+
     case "get_player_batting_stats":
       return client.getPlayerBatStats({
         year: args.year as number | undefined,

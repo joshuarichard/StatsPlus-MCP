@@ -161,6 +161,36 @@ describe("StatsPlusClient", () => {
     });
   });
 
+  describe("getPlayerFieldStats", () => {
+    const header = "id,player_id,year,team_id,league_id,level_id,split_id,position,tc,a,po,er,ip,g,gs,e,dp,tp,pb,sba,rto,ipf,plays,plays_base,roe,opps_0,opps_made_0,opps_1,opps_made_1,opps_2,opps_made_2,opps_3,opps_made_3,opps_4,opps_made_4,opps_5,opps_made_5,framing,arm,zr";
+
+    it("calls the /playerfieldstatsv2/ endpoint", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getPlayerFieldStats();
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("/api/playerfieldstatsv2/");
+    });
+
+    it("appends year, pid, and split params", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getPlayerFieldStats({ year: 2058, pid: 42, split: 2 });
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("year=2058");
+      expect(url).toContain("pid=42");
+      expect(url).toContain("split=2");
+    });
+
+    it("parses CSV into PlayerFieldStatLine objects", async () => {
+      mockCsvResponse(`${header}\n464,65,2058,7,100,1,0,6,470,311,149,0,971,123,113,10,60,0,0,0,0,2,326,317,10,302,283,27,20,44,24,58,18,67,13,12,0,0.0,0.0,5.4636`);
+      const result = await client.getPlayerFieldStats();
+      expect(result).toHaveLength(1);
+      expect(result[0].player_id).toBe(65);
+      expect(result[0].position).toBe(6);
+      expect(result[0].e).toBe(10);
+      expect(result[0].zr).toBe(5.4636);
+    });
+  });
+
   describe("getPlayerPitchStats", () => {
     it("calls the /playerpitchstatsv2/ endpoint", async () => {
       mockCsvResponse("id,player_id,year\n");
