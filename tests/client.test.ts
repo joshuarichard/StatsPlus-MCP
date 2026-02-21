@@ -268,6 +268,36 @@ describe("StatsPlusClient", () => {
     });
   });
 
+  describe("getContracts", () => {
+    const header = "player_id,team_id,league_id,is_major,no_trade,last_year_team_option,last_year_player_option,last_year_vesting_option,next_last_year_team_option,next_last_year_player_option,next_last_year_vesting_option,contract_team_id,contract_league_id,season_year,salary0,salary1,salary2,salary3,salary4,salary5,salary6,salary7,salary8,salary9,salary10,salary11,salary12,salary13,salary14,years,current_year,minimum_pa,minimum_pa_bonus,minimum_ip,minimum_ip_bonus,mvp_bonus,cyyoung_bonus,allstar_bonus,next_last_year_option_buyout,last_year_option_buyout";
+
+    it("calls the /contract/ endpoint", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getContracts();
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("/api/contract/");
+    });
+
+    it("parses CSV into Contract objects", async () => {
+      mockCsvResponse(`${header}\n65,7,100,1,0,0,0,0,0,0,0,7,100,2058,5000000,5500000,6000000,0,0,0,0,0,0,0,0,0,0,0,0,3,1,0,0,0,0,0,0,0,0,0`);
+      const result = await client.getContracts();
+      expect(result).toHaveLength(1);
+      expect(result[0].player_id).toBe(65);
+      expect(result[0].team_id).toBe(7);
+      expect(result[0].salary0).toBe(5000000);
+      expect(result[0].years).toBe(3);
+    });
+  });
+
+  describe("getContractExtensions", () => {
+    it("calls the /contractextension/ endpoint", async () => {
+      mockCsvResponse("player_id,team_id\n");
+      await client.getContractExtensions();
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("/api/contractextension/");
+    });
+  });
+
   describe("getExports", () => {
     it("calls the /exports/ endpoint", async () => {
       mockJsonResponse({ current_date: "2059-02-20", "2059-02-20": [1, 2] });

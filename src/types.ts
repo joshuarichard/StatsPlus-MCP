@@ -235,6 +235,60 @@ export interface Player {
   Retired: string;
 }
 
+// ---- Contracts ----
+// Columns: player_id,team_id,league_id,is_major,no_trade,
+//          last_year_team_option,last_year_player_option,last_year_vesting_option,
+//          next_last_year_team_option,next_last_year_player_option,next_last_year_vesting_option,
+//          contract_team_id,contract_league_id,season_year,
+//          salary0..salary14,years,current_year,
+//          minimum_pa,minimum_pa_bonus,minimum_ip,minimum_ip_bonus,
+//          mvp_bonus,cyyoung_bonus,allstar_bonus,
+//          next_last_year_option_buyout,last_year_option_buyout
+// Used by both /contract and /contractextension endpoints.
+
+export interface Contract {
+  player_id: number;
+  team_id: number;
+  league_id: number;
+  is_major: number;
+  no_trade: number;
+  last_year_team_option: number;
+  last_year_player_option: number;
+  last_year_vesting_option: number;
+  next_last_year_team_option: number;
+  next_last_year_player_option: number;
+  next_last_year_vesting_option: number;
+  contract_team_id: number;
+  contract_league_id: number;
+  season_year: number;
+  salary0: number;
+  salary1: number;
+  salary2: number;
+  salary3: number;
+  salary4: number;
+  salary5: number;
+  salary6: number;
+  salary7: number;
+  salary8: number;
+  salary9: number;
+  salary10: number;
+  salary11: number;
+  salary12: number;
+  salary13: number;
+  salary14: number;
+  years: number;
+  current_year: number;
+  minimum_pa: number;
+  minimum_pa_bonus: number;
+  minimum_ip: number;
+  minimum_ip_bonus: number;
+  mvp_bonus: number;
+  cyyoung_bonus: number;
+  allstar_bonus: number;
+  next_last_year_option_buyout: number;
+  last_year_option_buyout: number;
+}
+
 // ---- Exports ----
 // JSON object keyed by date (YYYY-MM-DD) → array of team IDs for games on that date.
 // Also includes a "current_date" key with today's simulated date.

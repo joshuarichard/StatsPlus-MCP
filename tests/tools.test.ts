@@ -11,13 +11,15 @@ function makeMockClient(overrides: Partial<StatsPlusClient> = {}): StatsPlusClie
     getDraft: vi.fn().mockResolvedValue([]),
     getExports: vi.fn().mockResolvedValue(""),
     getPlayers: vi.fn().mockResolvedValue([]),
+    getContracts: vi.fn().mockResolvedValue([]),
+    getContractExtensions: vi.fn().mockResolvedValue([]),
     ...overrides,
   } as unknown as StatsPlusClient;
 }
 
 describe("toolDefinitions", () => {
-  it("exports 7 tool definitions", () => {
-    expect(toolDefinitions).toHaveLength(7);
+  it("exports 9 tool definitions", () => {
+    expect(toolDefinitions).toHaveLength(9);
   });
 
   it("includes expected tool names", () => {
@@ -29,6 +31,8 @@ describe("toolDefinitions", () => {
     expect(names).toContain("get_draft");
     expect(names).toContain("get_exports");
     expect(names).toContain("get_players");
+    expect(names).toContain("get_contracts");
+    expect(names).toContain("get_contract_extensions");
   });
 
   it("each tool has a description", () => {
@@ -148,6 +152,36 @@ describe("handleTool", () => {
       const client = makeMockClient({ getExports: vi.fn().mockResolvedValue(csv) });
       const result = await handleTool("get_exports", {}, client);
       expect(result).toBe(csv);
+    });
+  });
+
+  describe("get_contracts", () => {
+    it("calls getContracts", async () => {
+      const client = makeMockClient();
+      await handleTool("get_contracts", {}, client);
+      expect(client.getContracts).toHaveBeenCalled();
+    });
+
+    it("returns result from client", async () => {
+      const contracts = [{ player_id: 1, team_id: 7, years: 3 }];
+      const client = makeMockClient({ getContracts: vi.fn().mockResolvedValue(contracts) });
+      const result = await handleTool("get_contracts", {}, client);
+      expect(result).toEqual(contracts);
+    });
+  });
+
+  describe("get_contract_extensions", () => {
+    it("calls getContractExtensions", async () => {
+      const client = makeMockClient();
+      await handleTool("get_contract_extensions", {}, client);
+      expect(client.getContractExtensions).toHaveBeenCalled();
+    });
+
+    it("returns result from client", async () => {
+      const extensions = [{ player_id: 2, team_id: 3, years: 5 }];
+      const client = makeMockClient({ getContractExtensions: vi.fn().mockResolvedValue(extensions) });
+      const result = await handleTool("get_contract_extensions", {}, client);
+      expect(result).toEqual(extensions);
     });
   });
 

@@ -55,6 +55,16 @@ export const toolDefinitions = [
     inputSchema: z.object({}),
   },
   {
+    name: "get_contracts",
+    description: "Retrieve all current and active player contracts.",
+    inputSchema: z.object({}),
+  },
+  {
+    name: "get_contract_extensions",
+    description: "Retrieve signed contract extensions that take effect in future seasons.",
+    inputSchema: z.object({}),
+  },
+  {
     name: "get_players",
     description: "Retrieve the player roster. Optionally filter by team_id to get a single team's players.",
     inputSchema: z.object({
@@ -99,6 +109,12 @@ export async function handleTool(
       return client.getDraft({
         lid: args.lid as number | undefined,
       });
+
+    case "get_contracts":
+      return client.getContracts();
+
+    case "get_contract_extensions":
+      return client.getContractExtensions();
 
     case "get_exports":
       return client.getExports();
