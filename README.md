@@ -62,6 +62,8 @@ cp .env.example .env
 | `get_player_batting_stats` | Player batting statistics | `year?`, `pid?`, `split?` |
 | `get_player_pitching_stats` | Player pitching statistics | `year?`, `pid?`, `split?` |
 | `get_player_fielding_stats` | Player fielding statistics by position | `year?`, `pid?`, `split?` |
+| `get_team_batting_stats` | Team batting statistics with rate stats | `year?`, `split?` |
+| `get_team_pitching_stats` | Team pitching statistics with rate stats | `year?`, `split?` |
 | `get_players` | Player roster with names and team assignments | `team_id?` |
 | `get_game_history` | All major league games with scores, hits, errors, and pitcher IDs | — |
 | `get_contracts` | All current and active player contracts | — |

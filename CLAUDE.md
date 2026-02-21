@@ -34,6 +34,8 @@ tests/
 | `get_player_batting_stats` | Batting stats; filter by `year`, `pid`, `split` |
 | `get_player_pitching_stats` | Pitching stats; filter by `year`, `pid`, `split` |
 | `get_player_fielding_stats` | Fielding stats by position; filter by `year`, `pid`, `split` |
+| `get_team_batting_stats` | Team batting stats with rate stats; filter by `year`, `split` |
+| `get_team_pitching_stats` | Team pitching stats with rate stats; filter by `year`, `split` |
 | `get_players` | Player roster with names and team assignments; filter by `team_id` |
 | `get_game_history` | All major league games with scores, hits, errors, and pitcher IDs |
 | `get_contracts` | All current and active player contracts |
