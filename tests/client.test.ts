@@ -232,6 +232,64 @@ describe("StatsPlusClient", () => {
     });
   });
 
+  describe("getTeamBatStats", () => {
+    const header = "name,tid,abbr,pa,ab,h,k,tb,s,d,t,hr,sb,cs,rbi,r,bb,ibb,hp,sh,sf,ci,gidp,xbh,avg,obp,slg,ops,iso,k_pct,bb_pct,babip,woba,split_id";
+
+    it("calls the /teambatstats/ endpoint", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getTeamBatStats();
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("/api/teambatstats/");
+    });
+
+    it("appends year and split params", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getTeamBatStats({ year: 2058, split: 1 });
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("year=2058");
+      expect(url).toContain("split=1");
+    });
+
+    it("parses CSV into TeamBatStatLine objects", async () => {
+      mockCsvResponse(`${header}\nBoston,4,BOS,6327,5658,1518,1206,2451,954,365,29,170,92,32,798,820,572,18,55,3,38,1,105,564,0.2683,0.3399,0.4333,0.7732,0.1650,19.0626,9.0296,0.3091,0.3341,1`);
+      const result = await client.getTeamBatStats();
+      expect(result).toHaveLength(1);
+      expect(result[0].tid).toBe(4);
+      expect(result[0].abbr).toBe("BOS");
+      expect(result[0].hr).toBe(170);
+      expect(result[0].split_id).toBe(1);
+    });
+  });
+
+  describe("getTeamPitchStats", () => {
+    const header = "name,tid,abbr,ip,ab,tb,ha,k,bf,bb,r,er,gb,fb,pi,ipf,sa,d,sh,sf,t,hra,bk,ci,iw,wp,hp,s,bs,cg,outs,era,lob,k_pct,bb_pct,k_bb_pct,fip,x_fip,e_f,babip,gbfb,hrfb,hr_pct,avg,obp,split_id";
+
+    it("calls the /teampitchstats/ endpoint", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getTeamPitchStats();
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("/api/teampitchstats/");
+    });
+
+    it("appends year and split params", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getTeamPitchStats({ year: 2058, split: 2 });
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("year=2058");
+      expect(url).toContain("split=2");
+    });
+
+    it("parses CSV into TeamPitchStatLine objects", async () => {
+      mockCsvResponse(`${header}\nBoston,4,BOS,1444,5695,0,1525,1348,6359,563,801,765,1265,1544,23826,15,922,361,5,36,38,204,4,0,32,39,60,46,25,2,4347,4.7516,72.326,21.1983,8.8536,12.3447,4.5631,4.3873,0.1884,0.3161,45.0338,13.2124,3.2081,0.2678,0.3381,1`);
+      const result = await client.getTeamPitchStats();
+      expect(result).toHaveLength(1);
+      expect(result[0].tid).toBe(4);
+      expect(result[0].abbr).toBe("BOS");
+      expect(result[0].era).toBe(4.7516);
+      expect(result[0].split_id).toBe(1);
+    });
+  });
+
   describe("getPlayers", () => {
     const header = 'ID,"First Name","Last Name","Team ID","Parent Team ID",Level,Pos,Role,Age,Retired';
 

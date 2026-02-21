@@ -6,6 +6,10 @@ import type {
   PlayerPitchStatLine,
   PlayerFieldStatsParams,
   PlayerFieldStatLine,
+  TeamBatStatsParams,
+  TeamBatStatLine,
+  TeamPitchStatsParams,
+  TeamPitchStatLine,
   Team,
   DraftParams,
   DraftPick,
@@ -143,6 +147,20 @@ export class StatsPlusClient {
     return this.getCsv<PlayerPitchStatLine>("/playerpitchstatsv2/", {
       year: params.year,
       pid: params.pid,
+      split: params.split,
+    });
+  }
+
+  async getTeamBatStats(params: TeamBatStatsParams = {}): Promise<TeamBatStatLine[]> {
+    return this.getCsv<TeamBatStatLine>("/teambatstats/", {
+      year: params.year,
+      split: params.split,
+    });
+  }
+
+  async getTeamPitchStats(params: TeamPitchStatsParams = {}): Promise<TeamPitchStatLine[]> {
+    return this.getCsv<TeamPitchStatLine>("/teampitchstats/", {
+      year: params.year,
       split: params.split,
     });
   }

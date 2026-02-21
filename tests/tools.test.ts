@@ -11,6 +11,8 @@ function makeMockClient(overrides: Partial<StatsPlusClient> = {}): StatsPlusClie
     getDraft: vi.fn().mockResolvedValue([]),
     getExports: vi.fn().mockResolvedValue(""),
     getPlayers: vi.fn().mockResolvedValue([]),
+    getTeamBatStats: vi.fn().mockResolvedValue([]),
+    getTeamPitchStats: vi.fn().mockResolvedValue([]),
     getGameHistory: vi.fn().mockResolvedValue([]),
     getContracts: vi.fn().mockResolvedValue([]),
     getContractExtensions: vi.fn().mockResolvedValue([]),
@@ -19,8 +21,8 @@ function makeMockClient(overrides: Partial<StatsPlusClient> = {}): StatsPlusClie
 }
 
 describe("toolDefinitions", () => {
-  it("exports 10 tool definitions", () => {
-    expect(toolDefinitions).toHaveLength(10);
+  it("exports 12 tool definitions", () => {
+    expect(toolDefinitions).toHaveLength(12);
   });
 
   it("includes expected tool names", () => {
@@ -32,6 +34,8 @@ describe("toolDefinitions", () => {
     expect(names).toContain("get_draft");
     expect(names).toContain("get_exports");
     expect(names).toContain("get_players");
+    expect(names).toContain("get_team_batting_stats");
+    expect(names).toContain("get_team_pitching_stats");
     expect(names).toContain("get_game_history");
     expect(names).toContain("get_contracts");
     expect(names).toContain("get_contract_extensions");
@@ -154,6 +158,48 @@ describe("handleTool", () => {
       const client = makeMockClient({ getExports: vi.fn().mockResolvedValue(csv) });
       const result = await handleTool("get_exports", {}, client);
       expect(result).toBe(csv);
+    });
+  });
+
+  describe("get_team_batting_stats", () => {
+    it("calls getTeamBatStats with no args", async () => {
+      const client = makeMockClient();
+      await handleTool("get_team_batting_stats", {}, client);
+      expect(client.getTeamBatStats).toHaveBeenCalledWith({ year: undefined, split: undefined });
+    });
+
+    it("passes year and split to getTeamBatStats", async () => {
+      const client = makeMockClient();
+      await handleTool("get_team_batting_stats", { year: 2058, split: 2 }, client);
+      expect(client.getTeamBatStats).toHaveBeenCalledWith({ year: 2058, split: 2 });
+    });
+
+    it("returns result from client", async () => {
+      const stats = [{ tid: 4, abbr: "BOS", hr: 170 }];
+      const client = makeMockClient({ getTeamBatStats: vi.fn().mockResolvedValue(stats) });
+      const result = await handleTool("get_team_batting_stats", {}, client);
+      expect(result).toEqual(stats);
+    });
+  });
+
+  describe("get_team_pitching_stats", () => {
+    it("calls getTeamPitchStats with no args", async () => {
+      const client = makeMockClient();
+      await handleTool("get_team_pitching_stats", {}, client);
+      expect(client.getTeamPitchStats).toHaveBeenCalledWith({ year: undefined, split: undefined });
+    });
+
+    it("passes year and split to getTeamPitchStats", async () => {
+      const client = makeMockClient();
+      await handleTool("get_team_pitching_stats", { year: 2058, split: 3 }, client);
+      expect(client.getTeamPitchStats).toHaveBeenCalledWith({ year: 2058, split: 3 });
+    });
+
+    it("returns result from client", async () => {
+      const stats = [{ tid: 4, abbr: "BOS", era: 4.75 }];
+      const client = makeMockClient({ getTeamPitchStats: vi.fn().mockResolvedValue(stats) });
+      const result = await handleTool("get_team_pitching_stats", {}, client);
+      expect(result).toEqual(stats);
     });
   });
 

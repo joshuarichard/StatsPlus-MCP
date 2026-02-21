@@ -37,6 +37,22 @@ export const toolDefinitions = [
     }),
   },
   {
+    name: "get_team_batting_stats",
+    description: "Retrieve team batting statistics. Omit params to get all teams for all seasons.",
+    inputSchema: z.object({
+      year: z.number().int().min(1900).max(2100).optional().describe("Season year, e.g. 2058"),
+      split: splitIdSchema,
+    }),
+  },
+  {
+    name: "get_team_pitching_stats",
+    description: "Retrieve team pitching statistics. Omit params to get all teams for all seasons.",
+    inputSchema: z.object({
+      year: z.number().int().min(1900).max(2100).optional().describe("Season year, e.g. 2058"),
+      split: splitIdSchema,
+    }),
+  },
+  {
     name: "get_teams",
     description: "Retrieve the list of teams in the league with their IDs and abbreviations.",
     inputSchema: z.object({}),
@@ -105,6 +121,18 @@ export async function handleTool(
       return client.getPlayerPitchStats({
         year: args.year as number | undefined,
         pid: args.pid as number | undefined,
+        split: args.split as 1 | 2 | 3 | undefined,
+      });
+
+    case "get_team_batting_stats":
+      return client.getTeamBatStats({
+        year: args.year as number | undefined,
+        split: args.split as 1 | 2 | 3 | undefined,
+      });
+
+    case "get_team_pitching_stats":
+      return client.getTeamPitchStats({
+        year: args.year as number | undefined,
         split: args.split as 1 | 2 | 3 | undefined,
       });
 

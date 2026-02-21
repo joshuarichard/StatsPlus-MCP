@@ -235,6 +235,110 @@ export interface Player {
   Retired: string;
 }
 
+// ---- Team Batting Stats ----
+// Columns: name,tid,abbr,pa,ab,h,k,tb,s,d,t,hr,sb,cs,rbi,r,bb,ibb,hp,sh,sf,ci,gidp,xbh,
+//          avg,obp,slg,ops,iso,k_pct,bb_pct,babip,woba,split_id
+
+export interface TeamBatStatsParams {
+  year?: number;
+  split?: SplitId;
+}
+
+export interface TeamBatStatLine {
+  name: string;
+  tid: number;
+  abbr: string;
+  pa: number;
+  ab: number;
+  h: number;
+  k: number;
+  tb: number;
+  s: number;
+  d: number;
+  t: number;
+  hr: number;
+  sb: number;
+  cs: number;
+  rbi: number;
+  r: number;
+  bb: number;
+  ibb: number;
+  hp: number;
+  sh: number;
+  sf: number;
+  ci: number;
+  gidp: number;
+  xbh: number;
+  avg: number;
+  obp: number;
+  slg: number;
+  ops: number;
+  iso: number;
+  k_pct: number;
+  bb_pct: number;
+  babip: number;
+  woba: number;
+  split_id: number;
+}
+
+// ---- Team Pitching Stats ----
+// Columns: name,tid,abbr,ip,ab,tb,ha,k,bf,bb,r,er,gb,fb,pi,ipf,sa,d,sh,sf,t,hra,bk,ci,iw,wp,hp,
+//          s,bs,cg,outs,era,lob,k_pct,bb_pct,k_bb_pct,fip,x_fip,e_f,babip,gbfb,hrfb,hr_pct,avg,obp,split_id
+
+export interface TeamPitchStatsParams {
+  year?: number;
+  split?: SplitId;
+}
+
+export interface TeamPitchStatLine {
+  name: string;
+  tid: number;
+  abbr: string;
+  ip: number;
+  ab: number;
+  tb: number;
+  ha: number;
+  k: number;
+  bf: number;
+  bb: number;
+  r: number;
+  er: number;
+  gb: number;
+  fb: number;
+  pi: number;
+  ipf: number;
+  sa: number;
+  d: number;
+  sh: number;
+  sf: number;
+  t: number;
+  hra: number;
+  bk: number;
+  ci: number;
+  iw: number;
+  wp: number;
+  hp: number;
+  s: number;
+  bs: number;
+  cg: number;
+  outs: number;
+  era: number;
+  lob: number;
+  k_pct: number;
+  bb_pct: number;
+  k_bb_pct: number;
+  fip: number;
+  x_fip: number;
+  e_f: number;
+  babip: number;
+  gbfb: number;
+  hrfb: number;
+  hr_pct: number;
+  avg: number;
+  obp: number;
+  split_id: number;
+}
+
 // ---- Game History ----
 // Columns: game_id,league_id,home_team,away_team,attendance,date,time,game_type,
 //          played,dh,innings,runs0,runs1,hits0,hits1,errors0,errors1,
