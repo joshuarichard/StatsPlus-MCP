@@ -235,6 +235,38 @@ export interface Player {
   Retired: string;
 }
 
+// ---- Game History ----
+// Columns: game_id,league_id,home_team,away_team,attendance,date,time,game_type,
+//          played,dh,innings,runs0,runs1,hits0,hits1,errors0,errors1,
+//          winning_pitcher,losing_pitcher,save_pitcher,starter0,starter1,cup
+// pitcher/starter fields are empty string when not applicable, numeric player_id otherwise.
+
+export interface GameHistoryEntry {
+  game_id: number;
+  league_id: number;
+  home_team: number;
+  away_team: number;
+  attendance: number;
+  date: string;
+  time: number;
+  game_type: number;
+  played: number;
+  dh: number;
+  innings: number;
+  runs0: number;
+  runs1: number;
+  hits0: number;
+  hits1: number;
+  errors0: number;
+  errors1: number;
+  winning_pitcher: number | string;
+  losing_pitcher: number | string;
+  save_pitcher: number | string;
+  starter0: number | string;
+  starter1: number | string;
+  cup: number;
+}
+
 // ---- Contracts ----
 // Columns: player_id,team_id,league_id,is_major,no_trade,
 //          last_year_team_option,last_year_player_option,last_year_vesting_option,

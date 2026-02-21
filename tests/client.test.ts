@@ -268,6 +268,38 @@ describe("StatsPlusClient", () => {
     });
   });
 
+  describe("getGameHistory", () => {
+    const header = "game_id,league_id,home_team,away_team,attendance,date,time,game_type,played,dh,innings,runs0,runs1,hits0,hits1,errors0,errors1,winning_pitcher,losing_pitcher,save_pitcher,starter0,starter1,cup";
+
+    it("calls the /gamehistory/ endpoint", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getGameHistory();
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("/api/gamehistory/");
+    });
+
+    it("parses CSV into GameHistoryEntry objects with correct types", async () => {
+      mockCsvResponse(`${header}\n2013000001,100,2,6,0,2013-04-01,1905,0,1,0,9,4,7,9,13,0,0,,,,,, 0`);
+      const result = await client.getGameHistory();
+      expect(result).toHaveLength(1);
+      expect(result[0].game_id).toBe(2013000001);
+      expect(result[0].home_team).toBe(2);
+      expect(result[0].away_team).toBe(6);
+      expect(result[0].date).toBe("2013-04-01");
+      expect(result[0].runs0).toBe(4);
+      expect(result[0].runs1).toBe(7);
+    });
+
+    it("parses pitcher fields as numbers when populated", async () => {
+      mockCsvResponse(`${header}\n2013000002,100,1,3,0,2013-04-01,1905,0,1,0,9,5,3,10,7,1,0,42,88,0,42,99,0`);
+      const result = await client.getGameHistory();
+      expect(result[0].winning_pitcher).toBe(42);
+      expect(result[0].losing_pitcher).toBe(88);
+      expect(result[0].starter0).toBe(42);
+      expect(result[0].starter1).toBe(99);
+    });
+  });
+
   describe("getContracts", () => {
     const header = "player_id,team_id,league_id,is_major,no_trade,last_year_team_option,last_year_player_option,last_year_vesting_option,next_last_year_team_option,next_last_year_player_option,next_last_year_vesting_option,contract_team_id,contract_league_id,season_year,salary0,salary1,salary2,salary3,salary4,salary5,salary6,salary7,salary8,salary9,salary10,salary11,salary12,salary13,salary14,years,current_year,minimum_pa,minimum_pa_bonus,minimum_ip,minimum_ip_bonus,mvp_bonus,cyyoung_bonus,allstar_bonus,next_last_year_option_buyout,last_year_option_buyout";
 

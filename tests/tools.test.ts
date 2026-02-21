@@ -11,6 +11,7 @@ function makeMockClient(overrides: Partial<StatsPlusClient> = {}): StatsPlusClie
     getDraft: vi.fn().mockResolvedValue([]),
     getExports: vi.fn().mockResolvedValue(""),
     getPlayers: vi.fn().mockResolvedValue([]),
+    getGameHistory: vi.fn().mockResolvedValue([]),
     getContracts: vi.fn().mockResolvedValue([]),
     getContractExtensions: vi.fn().mockResolvedValue([]),
     ...overrides,
@@ -18,8 +19,8 @@ function makeMockClient(overrides: Partial<StatsPlusClient> = {}): StatsPlusClie
 }
 
 describe("toolDefinitions", () => {
-  it("exports 9 tool definitions", () => {
-    expect(toolDefinitions).toHaveLength(9);
+  it("exports 10 tool definitions", () => {
+    expect(toolDefinitions).toHaveLength(10);
   });
 
   it("includes expected tool names", () => {
@@ -31,6 +32,7 @@ describe("toolDefinitions", () => {
     expect(names).toContain("get_draft");
     expect(names).toContain("get_exports");
     expect(names).toContain("get_players");
+    expect(names).toContain("get_game_history");
     expect(names).toContain("get_contracts");
     expect(names).toContain("get_contract_extensions");
   });
@@ -152,6 +154,21 @@ describe("handleTool", () => {
       const client = makeMockClient({ getExports: vi.fn().mockResolvedValue(csv) });
       const result = await handleTool("get_exports", {}, client);
       expect(result).toBe(csv);
+    });
+  });
+
+  describe("get_game_history", () => {
+    it("calls getGameHistory", async () => {
+      const client = makeMockClient();
+      await handleTool("get_game_history", {}, client);
+      expect(client.getGameHistory).toHaveBeenCalled();
+    });
+
+    it("returns result from client", async () => {
+      const games = [{ game_id: 2013000001, home_team: 2, away_team: 6 }];
+      const client = makeMockClient({ getGameHistory: vi.fn().mockResolvedValue(games) });
+      const result = await handleTool("get_game_history", {}, client);
+      expect(result).toEqual(games);
     });
   });
 

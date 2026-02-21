@@ -55,6 +55,12 @@ export const toolDefinitions = [
     inputSchema: z.object({}),
   },
   {
+    name: "get_game_history",
+    description:
+      "Retrieve all major league games since the league started, including scores, hitting, pitchers, and game dates.",
+    inputSchema: z.object({}),
+  },
+  {
     name: "get_contracts",
     description: "Retrieve all current and active player contracts.",
     inputSchema: z.object({}),
@@ -109,6 +115,9 @@ export async function handleTool(
       return client.getDraft({
         lid: args.lid as number | undefined,
       });
+
+    case "get_game_history":
+      return client.getGameHistory();
 
     case "get_contracts":
       return client.getContracts();

@@ -11,6 +11,7 @@ import type {
   DraftPick,
   GetPlayersParams,
   Player,
+  GameHistoryEntry,
   Contract,
   ExportsResponse,
 } from "./types.js";
@@ -160,6 +161,10 @@ export class StatsPlusClient {
     return this.getCsv<Player>("/players/", {
       team_id: params.team_id,
     });
+  }
+
+  async getGameHistory(): Promise<GameHistoryEntry[]> {
+    return this.getCsv<GameHistoryEntry>("/gamehistory/");
   }
 
   async getContracts(): Promise<Contract[]> {
