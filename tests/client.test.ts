@@ -202,6 +202,42 @@ describe("StatsPlusClient", () => {
     });
   });
 
+  describe("getPlayers", () => {
+    const header = 'ID,"First Name","Last Name","Team ID","Parent Team ID",Level,Pos,Role,Age,Retired';
+
+    it("calls the /players/ endpoint", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getPlayers();
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("/api/players/");
+    });
+
+    it("appends team_id param when provided", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getPlayers({ team_id: 7 });
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("team_id=7");
+    });
+
+    it("omits team_id param when not provided", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getPlayers();
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).not.toContain("team_id");
+    });
+
+    it("parses CSV response into Player objects", async () => {
+      mockCsvResponse(`${header}\n1,John,Doe,7,0,MLB,SP,Starter,28,`);
+      const result = await client.getPlayers();
+      expect(result).toHaveLength(1);
+      expect(result[0].ID).toBe(1);
+      expect(result[0]["First Name"]).toBe("John");
+      expect(result[0]["Last Name"]).toBe("Doe");
+      expect(result[0]["Team ID"]).toBe(7);
+      expect(result[0].Age).toBe(28);
+    });
+  });
+
   describe("getExports", () => {
     it("calls the /exports/ endpoint", async () => {
       mockJsonResponse({ current_date: "2059-02-20", "2059-02-20": [1, 2] });

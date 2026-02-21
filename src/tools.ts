@@ -44,6 +44,13 @@ export const toolDefinitions = [
       "Retrieve a CSV export of all major league games since the league started, including scores, starting pitchers, winning/losing pitchers, and game dates.",
     inputSchema: z.object({}),
   },
+  {
+    name: "get_players",
+    description: "Retrieve the player roster. Optionally filter by team_id to get a single team's players.",
+    inputSchema: z.object({
+      team_id: z.number().int().positive().optional().describe("Team ID to filter by"),
+    }),
+  },
 ] as const;
 
 type ToolName = (typeof toolDefinitions)[number]["name"];
@@ -78,6 +85,11 @@ export async function handleTool(
 
     case "get_exports":
       return client.getExports();
+
+    case "get_players":
+      return client.getPlayers({
+        team_id: args.team_id as number | undefined,
+      });
 
     default:
       throw new Error(`Unknown tool: ${name}`);

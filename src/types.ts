@@ -159,6 +159,26 @@ export interface DraftPick {
   "Time (UTC)": string;
 }
 
+// ---- Players ----
+// Columns: ID,"First Name","Last Name","Team ID","Parent Team ID",Level,Pos,Role,Age,Retired
+
+export interface GetPlayersParams {
+  team_id?: number;
+}
+
+export interface Player {
+  ID: number;
+  "First Name": string;
+  "Last Name": string;
+  "Team ID": number;
+  "Parent Team ID": number;
+  Level: string;
+  Pos: string;
+  Role: string;
+  Age: number;
+  Retired: string;
+}
+
 // ---- Exports ----
 // JSON object keyed by date (YYYY-MM-DD) → array of team IDs for games on that date.
 // Also includes a "current_date" key with today's simulated date.

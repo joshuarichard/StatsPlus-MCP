@@ -7,6 +7,8 @@ import type {
   Team,
   DraftParams,
   DraftPick,
+  GetPlayersParams,
+  Player,
   ExportsResponse,
 } from "./types.js";
 
@@ -140,6 +142,12 @@ export class StatsPlusClient {
   async getDraft(params: DraftParams = {}): Promise<DraftPick[]> {
     return this.getCsv<DraftPick>("/draftv2/", {
       lid: params.lid,
+    });
+  }
+
+  async getPlayers(params: GetPlayersParams = {}): Promise<Player[]> {
+    return this.getCsv<Player>("/players/", {
+      team_id: params.team_id,
     });
   }
 

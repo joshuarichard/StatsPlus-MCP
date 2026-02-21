@@ -9,13 +9,14 @@ function makeMockClient(overrides: Partial<StatsPlusClient> = {}): StatsPlusClie
     getTeams: vi.fn().mockResolvedValue([]),
     getDraft: vi.fn().mockResolvedValue([]),
     getExports: vi.fn().mockResolvedValue(""),
+    getPlayers: vi.fn().mockResolvedValue([]),
     ...overrides,
   } as unknown as StatsPlusClient;
 }
 
 describe("toolDefinitions", () => {
-  it("exports 5 tool definitions", () => {
-    expect(toolDefinitions).toHaveLength(5);
+  it("exports 6 tool definitions", () => {
+    expect(toolDefinitions).toHaveLength(6);
   });
 
   it("includes expected tool names", () => {
@@ -25,6 +26,7 @@ describe("toolDefinitions", () => {
     expect(names).toContain("get_teams");
     expect(names).toContain("get_draft");
     expect(names).toContain("get_exports");
+    expect(names).toContain("get_players");
   });
 
   it("each tool has a description", () => {
@@ -119,6 +121,27 @@ describe("handleTool", () => {
       const client = makeMockClient({ getExports: vi.fn().mockResolvedValue(csv) });
       const result = await handleTool("get_exports", {}, client);
       expect(result).toBe(csv);
+    });
+  });
+
+  describe("get_players", () => {
+    it("calls getPlayers with no team_id", async () => {
+      const client = makeMockClient();
+      await handleTool("get_players", {}, client);
+      expect(client.getPlayers).toHaveBeenCalledWith({ team_id: undefined });
+    });
+
+    it("passes team_id to getPlayers", async () => {
+      const client = makeMockClient();
+      await handleTool("get_players", { team_id: 7 }, client);
+      expect(client.getPlayers).toHaveBeenCalledWith({ team_id: 7 });
+    });
+
+    it("returns result from client", async () => {
+      const players = [{ ID: 1, "First Name": "John", "Last Name": "Doe" }];
+      const client = makeMockClient({ getPlayers: vi.fn().mockResolvedValue(players) });
+      const result = await handleTool("get_players", {}, client);
+      expect(result).toEqual(players);
     });
   });
 
