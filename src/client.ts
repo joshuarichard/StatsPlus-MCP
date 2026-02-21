@@ -7,14 +7,75 @@ import type {
   Team,
   DraftParams,
   DraftPick,
+  ExportsResponse,
 } from "./types.js";
+
+// Parses a CSV string (with headers) into an array of objects.
+// Numeric-looking values are coerced to numbers automatically.
+function parseCsv(text: string): Record<string, string | number>[] {
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  if (lines.length < 2) return [];
+
+  const headers = parseCsvRow(lines[0]);
+  const rows: Record<string, string | number>[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const values = parseCsvRow(line);
+    const row: Record<string, string | number> = {};
+    for (let j = 0; j < headers.length; j++) {
+      const raw = values[j] ?? "";
+      const num = Number(raw);
+      row[headers[j]] = raw !== "" && !isNaN(num) ? num : raw;
+    }
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+// Parses a single CSV row, handling double-quoted fields.
+function parseCsvRow(line: string): string[] {
+  const fields: string[] = [];
+  let i = 0;
+  while (i < line.length) {
+    if (line[i] === '"') {
+      // Quoted field
+      let field = "";
+      i++; // skip opening quote
+      while (i < line.length) {
+        if (line[i] === '"' && line[i + 1] === '"') {
+          field += '"';
+          i += 2;
+        } else if (line[i] === '"') {
+          i++; // skip closing quote
+          break;
+        } else {
+          field += line[i++];
+        }
+      }
+      fields.push(field);
+      if (line[i] === ",") i++;
+    } else {
+      // Unquoted field
+      const end = line.indexOf(",", i);
+      if (end === -1) {
+        fields.push(line.slice(i));
+        break;
+      }
+      fields.push(line.slice(i, end));
+      i = end + 1;
+    }
+  }
+  return fields;
+}
 
 export class StatsPlusClient {
   private baseUrl: string;
   private headers: Record<string, string>;
 
   constructor(config: StatsPlusConfig) {
-    // Normalize: strip trailing slash
     this.baseUrl = `https://statsplus.net/${config.leagueUrl.replace(/^\/|\/$/g, "")}/api`;
     this.headers = {
       Accept: "application/json",
@@ -25,7 +86,7 @@ export class StatsPlusClient {
     }
   }
 
-  private async get<T>(path: string, params: Record<string, string | number | undefined> = {}): Promise<T> {
+  private async fetch(path: string, params: Record<string, string | number | undefined> = {}): Promise<Response> {
     const url = new URL(`${this.baseUrl}${path}`);
     for (const [key, value] of Object.entries(params)) {
       if (value !== undefined) {
@@ -42,17 +103,22 @@ export class StatsPlusClient {
       throw new Error(`StatsPlus API error: ${response.status} ${response.statusText} for ${url}`);
     }
 
-    const contentType = response.headers.get("content-type") ?? "";
-    if (contentType.includes("application/json")) {
-      return response.json() as Promise<T>;
-    }
-    // Fallback: return raw text wrapped as unknown
+    return response;
+  }
+
+  private async getJson<T>(path: string, params: Record<string, string | number | undefined> = {}): Promise<T> {
+    const response = await this.fetch(path, params);
+    return response.json() as Promise<T>;
+  }
+
+  private async getCsv<T>(path: string, params: Record<string, string | number | undefined> = {}): Promise<T[]> {
+    const response = await this.fetch(path, params);
     const text = await response.text();
-    return text as unknown as T;
+    return parseCsv(text) as T[];
   }
 
   async getPlayerBatStats(params: PlayerBatStatsParams = {}): Promise<PlayerBatStatLine[]> {
-    return this.get<PlayerBatStatLine[]>("/playerbatstatsv2/", {
+    return this.getCsv<PlayerBatStatLine>("/playerbatstatsv2/", {
       year: params.year,
       pid: params.pid,
       split: params.split,
@@ -60,7 +126,7 @@ export class StatsPlusClient {
   }
 
   async getPlayerPitchStats(params: PlayerPitchStatsParams = {}): Promise<PlayerPitchStatLine[]> {
-    return this.get<PlayerPitchStatLine[]>("/playerpitchstatsv2/", {
+    return this.getCsv<PlayerPitchStatLine>("/playerpitchstatsv2/", {
       year: params.year,
       pid: params.pid,
       split: params.split,
@@ -68,16 +134,18 @@ export class StatsPlusClient {
   }
 
   async getTeams(): Promise<Team[]> {
-    return this.get<Team[]>("/teams/");
+    return this.getCsv<Team>("/teams/");
   }
 
   async getDraft(params: DraftParams = {}): Promise<DraftPick[]> {
-    return this.get<DraftPick[]>("/draftv2/", {
+    return this.getCsv<DraftPick>("/draftv2/", {
       lid: params.lid,
     });
   }
 
-  async getExports(): Promise<string> {
-    return this.get<string>("/exports/");
+  async getExports(): Promise<ExportsResponse> {
+    return this.getJson<ExportsResponse>("/exports/");
   }
 }
+
+export { parseCsv, parseCsvRow };
