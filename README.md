@@ -63,6 +63,7 @@ cp .env.example .env
 | `get_player_pitching_stats` | Player pitching statistics | `year?`, `pid?`, `split?` |
 | `get_player_fielding_stats` | Player fielding statistics by position | `year?`, `pid?`, `split?` |
 | `get_players` | Player roster with names and team assignments | `team_id?` |
+| `get_game_history` | All major league games with scores, hits, errors, and pitcher IDs | — |
 | `get_contracts` | All current and active player contracts | — |
 | `get_contract_extensions` | Signed extensions taking effect in future seasons | — |
 | `get_teams` | Team list with IDs and abbreviations | — |
@@ -76,6 +77,7 @@ cp .env.example .env
 - **Name-to-ID resolution:** Stat endpoints return numeric `player_id` values. Use `get_players` (optionally filtered by `team_id`) to look up players by name before querying stats.
 - **Preseason:** During preseason, player stat endpoints return no data for the upcoming year. Pass `year=<most recent season>` to retrieve historical stats.
 - **Fielding:** `get_player_fielding_stats` returns one row per player per position per split, so a player who appeared at multiple positions will have multiple rows.
+- **Game history:** `runs0`/`hits0`/`errors0` are home team, `runs1`/`hits1`/`errors1` are away team. Pitcher fields (`winning_pitcher`, `losing_pitcher`, `starter0`, `starter1`) are numeric player IDs. `save_pitcher` is `0` when there is no save.
 - **Contracts:** `salary0` is the current season salary, `salary1` is next season, and so on up to `salary14`. Unpopulated years are `0`. `is_major` and `no_trade` are `0`/`1` integers. `get_contract_extensions` returns the same schema for deals already signed but not yet in effect.
 
 ## Development
