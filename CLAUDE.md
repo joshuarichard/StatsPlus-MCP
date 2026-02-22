@@ -37,6 +37,7 @@ tests/
 | `get_team_batting_stats` | Team batting stats with rate stats; filter by `year`, `split` |
 | `get_team_pitching_stats` | Team pitching stats with rate stats; filter by `year`, `split` |
 | `get_players` | Player roster with names and team assignments; filter by `team_id` |
+| `get_ratings` | Player ratings (overall, potential, per-attribute); async — waits up to ~5 min |
 | `get_game_history` | All major league games with scores, hits, errors, and pitcher IDs |
 | `get_contracts` | All current and active player contracts |
 | `get_contract_extensions` | Signed extensions taking effect in future seasons |
@@ -54,6 +55,7 @@ tests/
 - The `/players/` endpoint returns roster data including first/last names — useful for resolving `player_id` values returned by stat endpoints.
 - `/teambatstats/` and `/teampitchstats/` exist in the API but are not yet implemented here (pending column schema confirmation from StatsPlus devs).
 - All CSV responses are parsed dynamically by column header name, so new columns added by the API will pass through even if not typed in the interface.
+- `/ratings/` is an async background job. The client hits the endpoint to start the job, waits 30s, then polls every 15s. The poll response says `"Request ID ... still in progress, check back soon"` until ready. Typically resolves in 60–90 seconds; times out after ~5 minutes.
 
 ## Commands
 
