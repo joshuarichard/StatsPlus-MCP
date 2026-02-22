@@ -260,6 +260,33 @@ describe("StatsPlusClient", () => {
       expect(result[0].overall).toBe(14);
     });
 
+    it("filters by player_ids when provided", async () => {
+      const multiCsv = "ID,player_id,team_id,overall\n65,65,7,14\n99,99,5,12\n";
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) })
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(multiCsv) });
+
+      const promise = client.getRatings({ player_ids: [65] });
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(result).toHaveLength(1);
+      expect(result[0].ID).toBe(65);
+    });
+
+    it("returns all ratings when player_ids is empty array", async () => {
+      const multiCsv = "ID,player_id,team_id,overall\n65,65,7,14\n99,99,5,12\n";
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) })
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(multiCsv) });
+
+      const promise = client.getRatings({ player_ids: [] });
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(result).toHaveLength(2);
+    });
+
     it("retries polling when response says Request received", async () => {
       mockFetch
         .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) })
@@ -400,6 +427,70 @@ describe("StatsPlusClient", () => {
       expect(result[0]["Team ID"]).toBe(7);
       expect(result[0].Age).toBe(28);
     });
+
+    it("filters by org_id on Parent Team ID", async () => {
+      mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Jane,Smith,93,851,A,OF,Starter,22,\n3,Bob,Jones,5,5,MLB,RP,Reliever,30,`);
+      const result = await client.getPlayers({ org_id: 851 });
+      expect(result).toHaveLength(2);
+      expect(result[0].ID).toBe(1);
+      expect(result[1].ID).toBe(2);
+    });
+
+    it("includes MLB-level players whose Team ID matches org_id", async () => {
+      mockCsvResponse(`${header}\n1,John,Doe,851,851,MLB,SP,Starter,28,\n2,Jane,Smith,93,851,A,OF,Starter,22,\n3,Bob,Jones,5,5,MLB,RP,Reliever,30,`);
+      const result = await client.getPlayers({ org_id: 851 });
+      expect(result).toHaveLength(2);
+    });
+
+    it("returns all players when org_id is not provided", async () => {
+      mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Bob,Jones,5,5,MLB,RP,Reliever,30,`);
+      const result = await client.getPlayers();
+      expect(result).toHaveLength(2);
+    });
+  });
+
+  describe("findPlayer", () => {
+    const header = 'ID,"First Name","Last Name","Team ID","Parent Team ID",Level,Pos,Role,Age,Retired';
+
+    it("calls the /players/ endpoint", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.findPlayer({ name: "Doe" });
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("/api/players/");
+    });
+
+    it("filters by last name (case-insensitive)", async () => {
+      mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Jane,Smith,7,851,MLB,OF,Starter,25,`);
+      const result = await client.findPlayer({ name: "doe" });
+      expect(result).toHaveLength(1);
+      expect(result[0].ID).toBe(1);
+    });
+
+    it("filters by first name (case-insensitive)", async () => {
+      mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Jane,Smith,7,851,MLB,OF,Starter,25,`);
+      const result = await client.findPlayer({ name: "jane" });
+      expect(result).toHaveLength(1);
+      expect(result[0].ID).toBe(2);
+    });
+
+    it("filters by partial full name", async () => {
+      mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Jane,Smith,7,851,MLB,OF,Starter,25,`);
+      const result = await client.findPlayer({ name: "john doe" });
+      expect(result).toHaveLength(1);
+      expect(result[0].ID).toBe(1);
+    });
+
+    it("returns empty array when no match", async () => {
+      mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,`);
+      const result = await client.findPlayer({ name: "xyz" });
+      expect(result).toHaveLength(0);
+    });
+
+    it("returns multiple matches for partial name", async () => {
+      mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Johnny,Doeby,7,851,MLB,OF,Starter,25,\n3,Bob,Smith,5,5,MLB,RP,Reliever,30,`);
+      const result = await client.findPlayer({ name: "john" });
+      expect(result).toHaveLength(2);
+    });
   });
 
   describe("getGameHistory", () => {
@@ -436,6 +527,8 @@ describe("StatsPlusClient", () => {
 
   describe("getContracts", () => {
     const header = "player_id,team_id,league_id,is_major,no_trade,last_year_team_option,last_year_player_option,last_year_vesting_option,next_last_year_team_option,next_last_year_player_option,next_last_year_vesting_option,contract_team_id,contract_league_id,season_year,salary0,salary1,salary2,salary3,salary4,salary5,salary6,salary7,salary8,salary9,salary10,salary11,salary12,salary13,salary14,years,current_year,minimum_pa,minimum_pa_bonus,minimum_ip,minimum_ip_bonus,mvp_bonus,cyyoung_bonus,allstar_bonus,next_last_year_option_buyout,last_year_option_buyout";
+    const row1 = "65,7,100,1,0,0,0,0,0,0,0,851,100,2058,5000000,5500000,6000000,0,0,0,0,0,0,0,0,0,0,0,0,3,1,0,0,0,0,0,0,0,0,0";
+    const row2 = "99,5,100,1,0,0,0,0,0,0,0,5,100,2058,3000000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0";
 
     it("calls the /contract/ endpoint", async () => {
       mockCsvResponse(`${header}\n`);
@@ -445,13 +538,33 @@ describe("StatsPlusClient", () => {
     });
 
     it("parses CSV into Contract objects", async () => {
-      mockCsvResponse(`${header}\n65,7,100,1,0,0,0,0,0,0,0,7,100,2058,5000000,5500000,6000000,0,0,0,0,0,0,0,0,0,0,0,0,3,1,0,0,0,0,0,0,0,0,0`);
+      mockCsvResponse(`${header}\n${row1}`);
       const result = await client.getContracts();
       expect(result).toHaveLength(1);
       expect(result[0].player_id).toBe(65);
       expect(result[0].team_id).toBe(7);
       expect(result[0].salary0).toBe(5000000);
       expect(result[0].years).toBe(3);
+    });
+
+    it("filters by team_id (contract_team_id)", async () => {
+      mockCsvResponse(`${header}\n${row1}\n${row2}`);
+      const result = await client.getContracts({ team_id: 851 });
+      expect(result).toHaveLength(1);
+      expect(result[0].player_id).toBe(65);
+    });
+
+    it("filters by player_id", async () => {
+      mockCsvResponse(`${header}\n${row1}\n${row2}`);
+      const result = await client.getContracts({ player_id: 99 });
+      expect(result).toHaveLength(1);
+      expect(result[0].player_id).toBe(99);
+    });
+
+    it("returns all contracts when no params provided", async () => {
+      mockCsvResponse(`${header}\n${row1}\n${row2}`);
+      const result = await client.getContracts();
+      expect(result).toHaveLength(2);
     });
   });
 

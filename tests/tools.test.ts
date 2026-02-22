@@ -11,6 +11,7 @@ function makeMockClient(overrides: Partial<StatsPlusClient> = {}): StatsPlusClie
     getDraft: vi.fn().mockResolvedValue([]),
     getExports: vi.fn().mockResolvedValue(""),
     getPlayers: vi.fn().mockResolvedValue([]),
+    findPlayer: vi.fn().mockResolvedValue([]),
     getTeamBatStats: vi.fn().mockResolvedValue([]),
     getTeamPitchStats: vi.fn().mockResolvedValue([]),
     getRatings: vi.fn().mockResolvedValue([]),
@@ -22,8 +23,8 @@ function makeMockClient(overrides: Partial<StatsPlusClient> = {}): StatsPlusClie
 }
 
 describe("toolDefinitions", () => {
-  it("exports 13 tool definitions", () => {
-    expect(toolDefinitions).toHaveLength(13);
+  it("exports 14 tool definitions", () => {
+    expect(toolDefinitions).toHaveLength(14);
   });
 
   it("includes expected tool names", () => {
@@ -35,6 +36,7 @@ describe("toolDefinitions", () => {
     expect(names).toContain("get_draft");
     expect(names).toContain("get_exports");
     expect(names).toContain("get_players");
+    expect(names).toContain("find_player");
     expect(names).toContain("get_ratings");
     expect(names).toContain("get_team_batting_stats");
     expect(names).toContain("get_team_pitching_stats");
@@ -164,10 +166,16 @@ describe("handleTool", () => {
   });
 
   describe("get_ratings", () => {
-    it("calls getRatings", async () => {
+    it("calls getRatings with no args", async () => {
       const client = makeMockClient();
       await handleTool("get_ratings", {}, client);
-      expect(client.getRatings).toHaveBeenCalled();
+      expect(client.getRatings).toHaveBeenCalledWith({ player_ids: undefined });
+    });
+
+    it("passes player_ids to getRatings", async () => {
+      const client = makeMockClient();
+      await handleTool("get_ratings", { player_ids: [52981, 56482] }, client);
+      expect(client.getRatings).toHaveBeenCalledWith({ player_ids: [52981, 56482] });
     });
 
     it("returns result from client", async () => {
@@ -236,10 +244,22 @@ describe("handleTool", () => {
   });
 
   describe("get_contracts", () => {
-    it("calls getContracts", async () => {
+    it("calls getContracts with no args", async () => {
       const client = makeMockClient();
       await handleTool("get_contracts", {}, client);
-      expect(client.getContracts).toHaveBeenCalled();
+      expect(client.getContracts).toHaveBeenCalledWith({ team_id: undefined, player_id: undefined });
+    });
+
+    it("passes team_id to getContracts", async () => {
+      const client = makeMockClient();
+      await handleTool("get_contracts", { team_id: 851 }, client);
+      expect(client.getContracts).toHaveBeenCalledWith({ team_id: 851, player_id: undefined });
+    });
+
+    it("passes player_id to getContracts", async () => {
+      const client = makeMockClient();
+      await handleTool("get_contracts", { player_id: 65 }, client);
+      expect(client.getContracts).toHaveBeenCalledWith({ team_id: undefined, player_id: 65 });
     });
 
     it("returns result from client", async () => {
@@ -266,22 +286,43 @@ describe("handleTool", () => {
   });
 
   describe("get_players", () => {
-    it("calls getPlayers with no team_id", async () => {
+    it("calls getPlayers with no args", async () => {
       const client = makeMockClient();
       await handleTool("get_players", {}, client);
-      expect(client.getPlayers).toHaveBeenCalledWith({ team_id: undefined });
+      expect(client.getPlayers).toHaveBeenCalledWith({ team_id: undefined, org_id: undefined });
     });
 
     it("passes team_id to getPlayers", async () => {
       const client = makeMockClient();
       await handleTool("get_players", { team_id: 7 }, client);
-      expect(client.getPlayers).toHaveBeenCalledWith({ team_id: 7 });
+      expect(client.getPlayers).toHaveBeenCalledWith({ team_id: 7, org_id: undefined });
+    });
+
+    it("passes org_id to getPlayers", async () => {
+      const client = makeMockClient();
+      await handleTool("get_players", { org_id: 851 }, client);
+      expect(client.getPlayers).toHaveBeenCalledWith({ team_id: undefined, org_id: 851 });
     });
 
     it("returns result from client", async () => {
       const players = [{ ID: 1, "First Name": "John", "Last Name": "Doe" }];
       const client = makeMockClient({ getPlayers: vi.fn().mockResolvedValue(players) });
       const result = await handleTool("get_players", {}, client);
+      expect(result).toEqual(players);
+    });
+  });
+
+  describe("find_player", () => {
+    it("calls findPlayer with name", async () => {
+      const client = makeMockClient();
+      await handleTool("find_player", { name: "O'Connor" }, client);
+      expect(client.findPlayer).toHaveBeenCalledWith({ name: "O'Connor" });
+    });
+
+    it("returns result from client", async () => {
+      const players = [{ ID: 42, "First Name": "Vince", "Last Name": "O'Connor" }];
+      const client = makeMockClient({ findPlayer: vi.fn().mockResolvedValue(players) });
+      const result = await handleTool("find_player", { name: "O'Connor" }, client);
       expect(result).toEqual(players);
     });
   });

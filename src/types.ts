@@ -220,6 +220,11 @@ export interface PlayerFieldStatLine {
 
 export interface GetPlayersParams {
   team_id?: number;
+  org_id?: number;
+}
+
+export interface FindPlayerParams {
+  name: string;
 }
 
 export interface Player {
@@ -348,6 +353,10 @@ export interface TeamPitchStatLine {
 
 export type PlayerRating = Record<string, string | number>;
 
+export interface GetRatingsParams {
+  player_ids?: number[];
+}
+
 // ---- Game History ----
 // Columns: game_id,league_id,home_team,away_team,attendance,date,time,game_type,
 //          played,dh,innings,runs0,runs1,hits0,hits1,errors0,errors1,
@@ -432,6 +441,11 @@ export interface Contract {
   allstar_bonus: number;
   next_last_year_option_buyout: number;
   last_year_option_buyout: number;
+}
+
+export interface GetContractsParams {
+  team_id?: number;
+  player_id?: number;
 }
 
 // ---- Exports ----

@@ -14,10 +14,13 @@ import type {
   DraftParams,
   DraftPick,
   GetPlayersParams,
+  FindPlayerParams,
   Player,
   PlayerRating,
+  GetRatingsParams,
   GameHistoryEntry,
   Contract,
+  GetContractsParams,
   ExportsResponse,
 } from "./types.js";
 
@@ -177,12 +180,28 @@ export class StatsPlusClient {
   }
 
   async getPlayers(params: GetPlayersParams = {}): Promise<Player[]> {
-    return this.getCsv<Player>("/players/", {
+    const players = await this.getCsv<Player>("/players/", {
       team_id: params.team_id,
+    });
+    if (params.org_id !== undefined) {
+      return players.filter(
+        (p) => p["Parent Team ID"] === params.org_id || p["Team ID"] === params.org_id
+      );
+    }
+    return players;
+  }
+
+  async findPlayer(params: FindPlayerParams): Promise<Player[]> {
+    const players = await this.getCsv<Player>("/players/", {});
+    const query = params.name.toLowerCase();
+    return players.filter((p) => {
+      const first = String(p["First Name"]).toLowerCase();
+      const last = String(p["Last Name"]).toLowerCase();
+      return first.includes(query) || last.includes(query) || `${first} ${last}`.includes(query);
     });
   }
 
-  async getRatings(): Promise<PlayerRating[]> {
+  async getRatings(params: GetRatingsParams = {}): Promise<PlayerRating[]> {
     // Step 1: kick off the background export job
     const initResponse = await this.fetch("/ratings/");
     const initText = await initResponse.text();
@@ -215,7 +234,12 @@ export class StatsPlusClient {
 
       // Still processing if response contains "still in progress" or "Request received"
       if (!pollText.includes("still in progress") && !pollText.startsWith("Request received")) {
-        return parseCsv(pollText) as PlayerRating[];
+        const ratings = parseCsv(pollText) as PlayerRating[];
+        if (params.player_ids && params.player_ids.length > 0) {
+          const idSet = new Set(params.player_ids);
+          return ratings.filter((r) => idSet.has(r["ID"] as number));
+        }
+        return ratings;
       }
 
       if (attempt < MAX_ATTEMPTS - 1) {
@@ -230,8 +254,15 @@ export class StatsPlusClient {
     return this.getCsv<GameHistoryEntry>("/gamehistory/");
   }
 
-  async getContracts(): Promise<Contract[]> {
-    return this.getCsv<Contract>("/contract/");
+  async getContracts(params: GetContractsParams = {}): Promise<Contract[]> {
+    let result = await this.getCsv<Contract>("/contract/", {});
+    if (params.team_id !== undefined) {
+      result = result.filter((c) => c.contract_team_id === params.team_id);
+    }
+    if (params.player_id !== undefined) {
+      result = result.filter((c) => c.player_id === params.player_id);
+    }
+    return result;
   }
 
   async getContractExtensions(): Promise<Contract[]> {

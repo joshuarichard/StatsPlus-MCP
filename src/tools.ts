@@ -74,7 +74,10 @@ export const toolDefinitions = [
     name: "get_ratings",
     description:
       "Retrieve player ratings (overall, potential, and per-attribute). This is an async export — the tool will wait up to ~5 minutes for the data to be ready before returning.",
-    inputSchema: z.object({}),
+    inputSchema: z.object({
+      player_ids: z.array(z.number().int().positive()).optional()
+        .describe("Filter results to specific player IDs. The full async job still runs, but only matching players are returned."),
+    }),
   },
   {
     name: "get_game_history",
@@ -85,7 +88,12 @@ export const toolDefinitions = [
   {
     name: "get_contracts",
     description: "Retrieve all current and active player contracts.",
-    inputSchema: z.object({}),
+    inputSchema: z.object({
+      team_id: z.number().int().positive().optional()
+        .describe("MLB team ID — filters by the team that holds the contract (contract_team_id)"),
+      player_id: z.number().int().positive().optional()
+        .describe("Player ID to fetch a single player's contract"),
+    }),
   },
   {
     name: "get_contract_extensions",
@@ -97,6 +105,15 @@ export const toolDefinitions = [
     description: "Retrieve the player roster. Optionally filter by team_id to get a single team's players.",
     inputSchema: z.object({
       team_id: z.number().int().positive().optional().describe("Team ID to filter by"),
+      org_id: z.number().int().positive().optional()
+        .describe("MLB org team ID — returns all players in the org (MLB roster + all affiliates) by filtering on Parent Team ID"),
+    }),
+  },
+  {
+    name: "find_player",
+    description: "Search for players by name (partial, case-insensitive). Returns matching players with their IDs and team info. Use this to resolve a player name to an ID without downloading the full roster.",
+    inputSchema: z.object({
+      name: z.string().describe("Name to search (partial, case-insensitive match on first name, last name, or full name)"),
     }),
   },
 ] as const;
@@ -151,13 +168,18 @@ export async function handleTool(
       });
 
     case "get_ratings":
-      return client.getRatings();
+      return client.getRatings({
+        player_ids: args.player_ids as number[] | undefined,
+      });
 
     case "get_game_history":
       return client.getGameHistory();
 
     case "get_contracts":
-      return client.getContracts();
+      return client.getContracts({
+        team_id: args.team_id as number | undefined,
+        player_id: args.player_id as number | undefined,
+      });
 
     case "get_contract_extensions":
       return client.getContractExtensions();
@@ -168,6 +190,12 @@ export async function handleTool(
     case "get_players":
       return client.getPlayers({
         team_id: args.team_id as number | undefined,
+        org_id: args.org_id as number | undefined,
+      });
+
+    case "find_player":
+      return client.findPlayer({
+        name: args.name as string,
       });
 
     default:
