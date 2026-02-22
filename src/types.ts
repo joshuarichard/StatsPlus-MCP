@@ -339,6 +339,15 @@ export interface TeamPitchStatLine {
   split_id: number;
 }
 
+// ---- Ratings ----
+// Columns are not guaranteed to be stable across OOTP versions (per StatsPlus docs),
+// so this is typed loosely. Known fields include player_id, team_id, league_id, level,
+// overall rating, potential rating, and per-attribute ratings.
+// Star ratings are encoded as (stars * 2), e.g. 3.5 stars = 7.
+// league_id is negative for international complex players (e.g. -100).
+
+export type PlayerRating = Record<string, string | number>;
+
 // ---- Game History ----
 // Columns: game_id,league_id,home_team,away_team,attendance,date,time,game_type,
 //          played,dh,innings,runs0,runs1,hits0,hits1,errors0,errors1,

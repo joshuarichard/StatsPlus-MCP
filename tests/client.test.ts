@@ -232,6 +232,67 @@ describe("StatsPlusClient", () => {
     });
   });
 
+  describe("getRatings", () => {
+    const initMsg = "Request received, please check https://statsplus.net/mbl/api/mycsv/?request=test-uuid for output. The process may take several minutes.";
+    const csvData = "player_id,team_id,overall\n65,7,14\n";
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("calls /ratings/ then polls the returned URL", async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) })
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(csvData) });
+
+      const promise = client.getRatings();
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(mockFetch.mock.calls[0][0]).toContain("/api/ratings/");
+      expect(mockFetch.mock.calls[1][0]).toContain("mycsv/?request=test-uuid");
+      expect(result).toHaveLength(1);
+      expect(result[0].player_id).toBe(65);
+      expect(result[0].overall).toBe(14);
+    });
+
+    it("retries polling when response still says Request received", async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) })
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) })
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(csvData) });
+
+      const promise = client.getRatings();
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(result).toHaveLength(1);
+    });
+
+    it("throws if poll URL cannot be parsed from response", async () => {
+      // Error thrown before any setTimeout — no timer advancement needed
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve("Unexpected response") });
+      await expect(client.getRatings()).rejects.toThrow("Unexpected /ratings/ response");
+    });
+
+    it("throws if poll endpoint returns non-ok status", async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) })
+        .mockResolvedValueOnce({ ok: false, status: 500, statusText: "Server Error", text: () => Promise.resolve("") });
+
+      // Attach rejection handler before advancing timers to avoid unhandled rejection warning
+      const promise = client.getRatings();
+      const assertion = expect(promise).rejects.toThrow("Ratings poll error: 500");
+      await vi.runAllTimersAsync();
+      await assertion;
+    });
+  });
+
   describe("getTeamBatStats", () => {
     const header = "name,tid,abbr,pa,ab,h,k,tb,s,d,t,hr,sb,cs,rbi,r,bb,ibb,hp,sh,sf,ci,gidp,xbh,avg,obp,slg,ops,iso,k_pct,bb_pct,babip,woba,split_id";
 

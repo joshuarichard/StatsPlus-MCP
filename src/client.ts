@@ -15,6 +15,7 @@ import type {
   DraftPick,
   GetPlayersParams,
   Player,
+  PlayerRating,
   GameHistoryEntry,
   Contract,
   ExportsResponse,
@@ -179,6 +180,50 @@ export class StatsPlusClient {
     return this.getCsv<Player>("/players/", {
       team_id: params.team_id,
     });
+  }
+
+  async getRatings(): Promise<PlayerRating[]> {
+    // Step 1: kick off the background export job
+    const initResponse = await this.fetch("/ratings/");
+    const initText = await initResponse.text();
+
+    // Step 2: extract the polling URL from the response text
+    const urlMatch = initText.match(/https?:\/\/[^\s]+/);
+    if (!urlMatch) {
+      throw new Error(`Unexpected /ratings/ response: ${initText}`);
+    }
+    const pollUrl = urlMatch[0].replace(/[.)]+$/, ""); // strip trailing punctuation
+
+    // Step 3: wait at least 30 seconds (minimum per StatsPlus docs), then poll
+    const INITIAL_DELAY_MS = 30_000;
+    const POLL_INTERVAL_MS = 15_000;
+    const MAX_ATTEMPTS = 20; // up to ~5 more minutes after initial delay
+
+    await new Promise((resolve) => setTimeout(resolve, INITIAL_DELAY_MS));
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      const pollResponse = await fetch(pollUrl, {
+        method: "GET",
+        headers: this.headers,
+      });
+
+      if (!pollResponse.ok) {
+        throw new Error(`Ratings poll error: ${pollResponse.status} ${pollResponse.statusText}`);
+      }
+
+      const pollText = await pollResponse.text();
+
+      // "Request received, please check..." means still processing
+      if (!pollText.startsWith("Request received")) {
+        return parseCsv(pollText) as PlayerRating[];
+      }
+
+      if (attempt < MAX_ATTEMPTS - 1) {
+        await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+      }
+    }
+
+    throw new Error("Ratings export timed out after ~5 minutes. Try again later.");
   }
 
   async getGameHistory(): Promise<GameHistoryEntry[]> {

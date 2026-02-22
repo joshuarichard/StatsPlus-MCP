@@ -71,6 +71,12 @@ export const toolDefinitions = [
     inputSchema: z.object({}),
   },
   {
+    name: "get_ratings",
+    description:
+      "Retrieve player ratings (overall, potential, and per-attribute). This is an async export — the tool will wait up to ~5 minutes for the data to be ready before returning.",
+    inputSchema: z.object({}),
+  },
+  {
     name: "get_game_history",
     description:
       "Retrieve all major league games since the league started, including scores, hitting, pitchers, and game dates.",
@@ -143,6 +149,9 @@ export async function handleTool(
       return client.getDraft({
         lid: args.lid as number | undefined,
       });
+
+    case "get_ratings":
+      return client.getRatings();
 
     case "get_game_history":
       return client.getGameHistory();

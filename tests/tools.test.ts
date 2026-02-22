@@ -13,6 +13,7 @@ function makeMockClient(overrides: Partial<StatsPlusClient> = {}): StatsPlusClie
     getPlayers: vi.fn().mockResolvedValue([]),
     getTeamBatStats: vi.fn().mockResolvedValue([]),
     getTeamPitchStats: vi.fn().mockResolvedValue([]),
+    getRatings: vi.fn().mockResolvedValue([]),
     getGameHistory: vi.fn().mockResolvedValue([]),
     getContracts: vi.fn().mockResolvedValue([]),
     getContractExtensions: vi.fn().mockResolvedValue([]),
@@ -21,8 +22,8 @@ function makeMockClient(overrides: Partial<StatsPlusClient> = {}): StatsPlusClie
 }
 
 describe("toolDefinitions", () => {
-  it("exports 12 tool definitions", () => {
-    expect(toolDefinitions).toHaveLength(12);
+  it("exports 13 tool definitions", () => {
+    expect(toolDefinitions).toHaveLength(13);
   });
 
   it("includes expected tool names", () => {
@@ -34,6 +35,7 @@ describe("toolDefinitions", () => {
     expect(names).toContain("get_draft");
     expect(names).toContain("get_exports");
     expect(names).toContain("get_players");
+    expect(names).toContain("get_ratings");
     expect(names).toContain("get_team_batting_stats");
     expect(names).toContain("get_team_pitching_stats");
     expect(names).toContain("get_game_history");
@@ -158,6 +160,21 @@ describe("handleTool", () => {
       const client = makeMockClient({ getExports: vi.fn().mockResolvedValue(csv) });
       const result = await handleTool("get_exports", {}, client);
       expect(result).toBe(csv);
+    });
+  });
+
+  describe("get_ratings", () => {
+    it("calls getRatings", async () => {
+      const client = makeMockClient();
+      await handleTool("get_ratings", {}, client);
+      expect(client.getRatings).toHaveBeenCalled();
+    });
+
+    it("returns result from client", async () => {
+      const ratings = [{ player_id: 65, overall: 14, potential: 16 }];
+      const client = makeMockClient({ getRatings: vi.fn().mockResolvedValue(ratings) });
+      const result = await handleTool("get_ratings", {}, client);
+      expect(result).toEqual(ratings);
     });
   });
 
