@@ -86,6 +86,35 @@ Add to your MCP client config (e.g. `~/.claude/mcp.json`):
 }
 ```
 
+## Known MCP Tool Quirks (observed in practice)
+
+### Large payload endpoints save to file
+`get_players`, `get_contracts`, and `get_ratings` all return datasets too large for the context window. The MCP client saves them to a temp file at `~/.claude/projects/.../tool-results/<tool-name>-<timestamp>.txt`. The format is a JSON array with a single `{type: "text", text: "..."}` object. To work with them:
+```python
+import json
+data = json.load(open(file_path))
+records = json.loads(data[0]['text'])
+```
+Use `jq` or Python filtering to extract specific players by `player_id` or `ID`.
+
+### Minor league players return empty stats arrays
+`get_player_batting_stats`, `get_player_pitching_stats`, and `get_player_fielding_stats` only return MLB-level stats. Players in AAA or below return `[]` even when specifying a `year`. There is no minor league stats endpoint — use `get_ratings` for prospect evaluation instead.
+
+### Undocumented split IDs
+Batting stats occasionally include `split_id: 21` (observed as a small-sample additional row). Only splits 1, 2, 3 are documented. The extra row appears to be postseason or some special split — safe to filter out for analysis.
+
+### Player team context in `get_players`
+Minor league players have their affiliate `Team ID` set to the minor league team (e.g., 93 = Durham Bulls), not the MLB parent. The `Parent Team ID` field holds the MLB org. Always use `Parent Team ID` to resolve which MLB team controls a minor league player.
+
+### Ratings `Pos` field reflects role, not handedness
+A player listed as `"Pos": "RP"` in ratings is a reliever, not necessarily a right-handed pitcher. The role designation (SP/RP) comes from the OOTP role, not pitching hand. The `Throws` field provides handedness. User-described "RHP" / "LHP" may map to `"RP"` or `"SP"` with `Throws: "R"` / `"L"`.
+
+### Contracts for minor leaguers show $0 salary
+Minor league contracts in `get_contracts` have all `salary0`–`salary14` fields as 0. The `contract_team_id` reflects the MLB parent org, while `team_id` is the current affiliate. `is_major: 0` identifies minor league deals. `season_year: 0` on minor league contracts (vs actual year on MLB deals).
+
+### `get_players` `team_id` filter still fetches globally
+When using `get_players` without `team_id`, the full league-wide roster is returned. Consider using the filter when you only care about one team's players to reduce payload size — though the response will still be large for big orgs with many affiliates.
+
 ## Adding New Endpoints
 
 1. Verify the endpoint against the live API with `curl` using `year=<latest>` to confirm it returns data
