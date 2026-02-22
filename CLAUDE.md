@@ -20,7 +20,7 @@ tests/
 
 | Variable | Required | Description |
 |---|---|---|
-| `STATSPLUS_LEAGUE_URL` | Yes | Your league's URL slug, e.g. `mbl` |
+| `STATSPLUS_LEAGUE_URL` | Yes | Your league's URL slug, e.g. `myleague` |
 | `STATSPLUS_COOKIE` | No | Session cookie for authenticated access |
 
 **Authentication note:** The StatsPlus API requires you to be logged in to your league at `https://statsplus.net/<LGURL>` and linked to a team. Pass your session cookie via `STATSPLUS_COOKIE` in the format `sessionid=<value>;csrftoken=<value>`.

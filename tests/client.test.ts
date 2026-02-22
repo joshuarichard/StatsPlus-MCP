@@ -233,7 +233,7 @@ describe("StatsPlusClient", () => {
   });
 
   describe("startRatingsJob", () => {
-    const initMsg = "Request received, please check https://statsplus.net/mbl/api/mycsv/?request=test-uuid for output. The process may take several minutes.";
+    const initMsg = "Request received, please check https://statsplus.net/myleague/api/mycsv/?request=test-uuid for output. The process may take several minutes.";
 
     it("calls the /ratings/ endpoint", async () => {
       mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) });
@@ -260,7 +260,7 @@ describe("StatsPlusClient", () => {
   });
 
   describe("getRatings", () => {
-    const initMsg = "Request received, please check https://statsplus.net/mbl/api/mycsv/?request=test-uuid for output. The process may take several minutes.";
+    const initMsg = "Request received, please check https://statsplus.net/myleague/api/mycsv/?request=test-uuid for output. The process may take several minutes.";
     const csvData = "player_id,team_id,overall\n65,7,14\n";
 
     beforeEach(() => {
@@ -364,7 +364,7 @@ describe("StatsPlusClient", () => {
     it("skips /ratings/ fetch and polls directly when poll_url is provided", async () => {
       mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(csvData) });
 
-      const result = await client.getRatings({ poll_url: "https://statsplus.net/mbl/api/mycsv/?request=test-uuid" });
+      const result = await client.getRatings({ poll_url: "https://statsplus.net/myleague/api/mycsv/?request=test-uuid" });
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(mockFetch.mock.calls[0][0]).toContain("mycsv/?request=test-uuid");
@@ -376,7 +376,7 @@ describe("StatsPlusClient", () => {
       // it confirms no setTimeout is blocking the poll_url path
       mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(csvData) });
 
-      const result = await client.getRatings({ poll_url: "https://statsplus.net/mbl/api/mycsv/?request=test-uuid" });
+      const result = await client.getRatings({ poll_url: "https://statsplus.net/myleague/api/mycsv/?request=test-uuid" });
       expect(result).toHaveLength(1);
     });
 
@@ -386,7 +386,7 @@ describe("StatsPlusClient", () => {
         .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(inProgressMsg) })
         .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(csvData) });
 
-      const promise = client.getRatings({ poll_url: "https://statsplus.net/mbl/api/mycsv/?request=test-uuid" });
+      const promise = client.getRatings({ poll_url: "https://statsplus.net/myleague/api/mycsv/?request=test-uuid" });
       await vi.runAllTimersAsync();
       const result = await promise;
 
@@ -399,7 +399,7 @@ describe("StatsPlusClient", () => {
       mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(multiCsv) });
 
       const result = await client.getRatings({
-        poll_url: "https://statsplus.net/mbl/api/mycsv/?request=test-uuid",
+        poll_url: "https://statsplus.net/myleague/api/mycsv/?request=test-uuid",
         player_ids: [65],
       });
 

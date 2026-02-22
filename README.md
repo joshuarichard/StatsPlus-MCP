@@ -40,7 +40,7 @@ claude mcp add statsplus \
 ```
 
 Replace:
-- `<your-league-url>` — your league's URL slug (e.g. `mbl`, `mlb2025`)
+- `<your-league-url>` — your league's URL slug (e.g. `myleague`, `mlb2025`)
 - `<sessionid>` — the `sessionid` cookie value from your browser
 - `<csrftoken>` — the `csrftoken` cookie value from your browser
 - `/path/to/StatsPlus-MCP` — the absolute path where you cloned this repo
