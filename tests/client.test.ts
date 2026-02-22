@@ -260,10 +260,25 @@ describe("StatsPlusClient", () => {
       expect(result[0].overall).toBe(14);
     });
 
-    it("retries polling when response still says Request received", async () => {
+    it("retries polling when response says Request received", async () => {
       mockFetch
         .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) })
         .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) })
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(csvData) });
+
+      const promise = client.getRatings();
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(result).toHaveLength(1);
+    });
+
+    it("retries polling when response says still in progress", async () => {
+      const inProgressMsg = "Request ID abc-123 still in progress, check back soon";
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) })
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(inProgressMsg) })
         .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(csvData) });
 
       const promise = client.getRatings();

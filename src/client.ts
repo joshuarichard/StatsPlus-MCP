@@ -213,8 +213,8 @@ export class StatsPlusClient {
 
       const pollText = await pollResponse.text();
 
-      // "Request received, please check..." means still processing
-      if (!pollText.startsWith("Request received")) {
+      // Still processing if response contains "still in progress" or "Request received"
+      if (!pollText.includes("still in progress") && !pollText.startsWith("Request received")) {
         return parseCsv(pollText) as PlayerRating[];
       }
 
