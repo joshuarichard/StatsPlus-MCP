@@ -77,12 +77,22 @@ cp .env.example .env
 
 ### Usage tips
 
-- **Name-to-ID resolution:** Stat endpoints return numeric `player_id` values. Use `get_players` (optionally filtered by `team_id`) to look up players by name before querying stats.
-- **Preseason:** During preseason, player stat endpoints return no data for the upcoming year. Pass `year=<most recent season>` to retrieve historical stats.
-- **Fielding:** `get_player_fielding_stats` returns one row per player per position per split, so a player who appeared at multiple positions will have multiple rows.
-- **Ratings:** `get_ratings` is an async background job — expect it to block for 60–90 seconds (up to 5 minutes). Columns include batting attributes (`Cntct`, `Gap`, `Pow`, `Eye`, `Ks`) with L/R splits, `Pot*` potential counterparts, and positional ratings. Star ratings are encoded as stars × 2 (e.g. 3.5 stars = 7). Column names may change across OOTP versions. International complex players have a negative `League` value.
-- **Game history:** `runs0`/`hits0`/`errors0` are home team, `runs1`/`hits1`/`errors1` are away team. Pitcher fields (`winning_pitcher`, `losing_pitcher`, `starter0`, `starter1`) are numeric player IDs. `save_pitcher` is `0` when there is no save.
-- **Contracts:** `salary0` is the current season salary, `salary1` is next season, and so on up to `salary14`. Unpopulated years are `0`. `is_major` and `no_trade` are `0`/`1` integers. `get_contract_extensions` returns the same schema for deals already signed but not yet in effect.
+- **Name-to-ID resolution:** Stat endpoints return numeric `player_id` values with no names attached. Use `get_players` (optionally filtered by `team_id`) to look up a player by name first, then pass their `ID` as `pid` to the stat endpoints.
+
+- **Preseason / empty responses:** During preseason, all stat endpoints (`batting`, `pitching`, `fielding`, `team batting`, `team pitching`) return HTTP 204 with no data for the upcoming year. Always pass `year=<most recent completed season>` to get data.
+
+- **Fielding:** `get_player_fielding_stats` returns one row per player per position per split. A player who appeared at multiple positions will have multiple rows — one for each.
+
+- **Ratings:** `get_ratings` is an async background job. The API queues the export on first request, then you poll a separate URL until the data is ready. This tool handles all of that automatically, but **expect it to block for 60–90 seconds** (up to 5 minutes in the worst case). Columns include batting contact/power/eye attributes (`Cntct`, `Gap`, `Pow`, `Eye`, `Ks`) with L/R splits, `Pot*` potential counterparts, and positional grades. Key encoding notes:
+  - Star ratings are stored as `stars × 2` — e.g. 3.5 stars = `7`, 5 stars = `10`
+  - International complex players have a **negative** `League` value (e.g. `-100`)
+  - Column names are not guaranteed to be stable across OOTP versions
+
+- **Game history:** `runs0`/`hits0`/`errors0` are the home team; `runs1`/`hits1`/`errors1` are the away team. `winning_pitcher`, `losing_pitcher`, `starter0`, and `starter1` are numeric player IDs. `save_pitcher` is `0` when there is no save pitcher.
+
+- **Contracts:** `salary0` is the current season salary, `salary1` is next season, and so on through `salary14`. Unpopulated years are `0`. `is_major` and `no_trade` are `0`/`1` integers. `get_contract_extensions` uses the same schema for deals already signed but not yet in effect.
+
+- **Splits:** All stat endpoints that accept a `split` parameter use `1` = Overall, `2` = vs Left-handed, `3` = vs Right-handed. Omitting `split` returns all three rows per player/team.
 
 ## Development
 
