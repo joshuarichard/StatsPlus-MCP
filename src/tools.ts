@@ -71,10 +71,18 @@ export const toolDefinitions = [
     inputSchema: z.object({}),
   },
   {
+    name: "start_ratings_job",
+    description:
+      "Start the async ratings export job and return a poll_url immediately, without waiting. Call this at the beginning of a workflow, do other data lookups while the job processes (~60–90s), then call get_ratings(poll_url) to collect results. This avoids blocking the workflow mid-step.",
+    inputSchema: z.object({}),
+  },
+  {
     name: "get_ratings",
     description:
-      "Retrieve player ratings (overall, potential, and per-attribute). This is an async export — the tool will wait up to ~5 minutes for the data to be ready before returning.",
+      "Retrieve player ratings (overall, potential, and per-attribute). If you have a poll_url from start_ratings_job, pass it here to collect results without re-starting the job. Without poll_url, starts a new job and blocks up to ~5 minutes waiting for results.",
     inputSchema: z.object({
+      poll_url: z.string().url().optional()
+        .describe("Poll URL returned by start_ratings_job. If provided, skips the job startup and 30s initial delay."),
       player_ids: z.array(z.number().int().positive()).optional()
         .describe("Filter results to specific player IDs. The full async job still runs, but only matching players are returned."),
     }),
@@ -167,8 +175,12 @@ export async function handleTool(
         lid: args.lid as number | undefined,
       });
 
+    case "start_ratings_job":
+      return client.startRatingsJob();
+
     case "get_ratings":
       return client.getRatings({
+        poll_url: args.poll_url as string | undefined,
         player_ids: args.player_ids as number[] | undefined,
       });
 

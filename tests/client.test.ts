@@ -232,6 +232,33 @@ describe("StatsPlusClient", () => {
     });
   });
 
+  describe("startRatingsJob", () => {
+    const initMsg = "Request received, please check https://statsplus.net/mbl/api/mycsv/?request=test-uuid for output. The process may take several minutes.";
+
+    it("calls the /ratings/ endpoint", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) });
+      await client.startRatingsJob();
+      expect(mockFetch.mock.calls[0][0]).toContain("/api/ratings/");
+    });
+
+    it("returns poll_url extracted from response", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) });
+      const result = await client.startRatingsJob();
+      expect(result.poll_url).toContain("mycsv/?request=test-uuid");
+    });
+
+    it("throws if poll URL cannot be parsed from response", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve("Unexpected response") });
+      await expect(client.startRatingsJob()).rejects.toThrow("Unexpected /ratings/ response");
+    });
+
+    it("makes only one fetch call (no polling)", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) });
+      await client.startRatingsJob();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("getRatings", () => {
     const initMsg = "Request received, please check https://statsplus.net/mbl/api/mycsv/?request=test-uuid for output. The process may take several minutes.";
     const csvData = "player_id,team_id,overall\n65,7,14\n";
@@ -332,6 +359,52 @@ describe("StatsPlusClient", () => {
       const assertion = expect(promise).rejects.toThrow("Ratings poll error: 500");
       await vi.runAllTimersAsync();
       await assertion;
+    });
+
+    it("skips /ratings/ fetch and polls directly when poll_url is provided", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(csvData) });
+
+      const result = await client.getRatings({ poll_url: "https://statsplus.net/mbl/api/mycsv/?request=test-uuid" });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch.mock.calls[0][0]).toContain("mycsv/?request=test-uuid");
+      expect(result).toHaveLength(1);
+    });
+
+    it("does not need timer advancement when poll_url provided and job is ready", async () => {
+      // With fake timers active, if the promise resolves without runAllTimersAsync(),
+      // it confirms no setTimeout is blocking the poll_url path
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(csvData) });
+
+      const result = await client.getRatings({ poll_url: "https://statsplus.net/mbl/api/mycsv/?request=test-uuid" });
+      expect(result).toHaveLength(1);
+    });
+
+    it("retries polling when poll_url provided and job not yet complete", async () => {
+      const inProgressMsg = "Request ID abc-123 still in progress, check back soon";
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(inProgressMsg) })
+        .mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(csvData) });
+
+      const promise = client.getRatings({ poll_url: "https://statsplus.net/mbl/api/mycsv/?request=test-uuid" });
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(result).toHaveLength(1);
+    });
+
+    it("filters by player_ids when poll_url is provided", async () => {
+      const multiCsv = "ID,player_id,team_id,overall\n65,65,7,14\n99,99,5,12\n";
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(multiCsv) });
+
+      const result = await client.getRatings({
+        poll_url: "https://statsplus.net/mbl/api/mycsv/?request=test-uuid",
+        player_ids: [65],
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].ID).toBe(65);
     });
   });
 

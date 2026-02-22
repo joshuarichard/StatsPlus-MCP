@@ -353,8 +353,13 @@ export interface TeamPitchStatLine {
 
 export type PlayerRating = Record<string, string | number>;
 
+export interface StartRatingsJobResult {
+  poll_url: string;
+}
+
 export interface GetRatingsParams {
   player_ids?: number[];
+  poll_url?: string;
 }
 
 // ---- Game History ----

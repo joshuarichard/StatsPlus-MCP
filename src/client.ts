@@ -18,6 +18,7 @@ import type {
   Player,
   PlayerRating,
   GetRatingsParams,
+  StartRatingsJobResult,
   GameHistoryEntry,
   Contract,
   GetContractsParams,
@@ -201,24 +202,40 @@ export class StatsPlusClient {
     });
   }
 
-  async getRatings(params: GetRatingsParams = {}): Promise<PlayerRating[]> {
-    // Step 1: kick off the background export job
+  // Kicks off the /ratings/ background job and returns the poll URL.
+  // Extracted as a private helper to avoid duplication between startRatingsJob and getRatings.
+  private async initiateRatingsJob(): Promise<string> {
     const initResponse = await this.fetch("/ratings/");
     const initText = await initResponse.text();
-
-    // Step 2: extract the polling URL from the response text
     const urlMatch = initText.match(/https?:\/\/[^\s]+/);
     if (!urlMatch) {
       throw new Error(`Unexpected /ratings/ response: ${initText}`);
     }
-    const pollUrl = urlMatch[0].replace(/[.)]+$/, ""); // strip trailing punctuation
+    return urlMatch[0].replace(/[.)]+$/, ""); // strip trailing punctuation
+  }
 
-    // Step 3: wait at least 30 seconds (minimum per StatsPlus docs), then poll
-    const INITIAL_DELAY_MS = 30_000;
+  // Fires the ratings export job and returns the poll URL immediately, without waiting.
+  // Use this at the start of a workflow, then call get_ratings(poll_url) later once
+  // the other data lookups are done — avoiding a 60–90s block mid-workflow.
+  async startRatingsJob(): Promise<StartRatingsJobResult> {
+    const pollUrl = await this.initiateRatingsJob();
+    return { poll_url: pollUrl };
+  }
+
+  async getRatings(params: GetRatingsParams = {}): Promise<PlayerRating[]> {
     const POLL_INTERVAL_MS = 15_000;
-    const MAX_ATTEMPTS = 20; // up to ~5 more minutes after initial delay
+    const MAX_ATTEMPTS = 20; // up to ~5 minutes of polling
 
-    await new Promise((resolve) => setTimeout(resolve, INITIAL_DELAY_MS));
+    let pollUrl: string;
+
+    if (params.poll_url) {
+      // Job was already started via startRatingsJob — skip the fetch and initial delay
+      pollUrl = params.poll_url;
+    } else {
+      // Start the job now, then wait the minimum recommended delay before first poll
+      pollUrl = await this.initiateRatingsJob();
+      await new Promise((resolve) => setTimeout(resolve, 30_000));
+    }
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       const pollResponse = await fetch(pollUrl, {

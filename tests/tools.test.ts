@@ -12,6 +12,7 @@ function makeMockClient(overrides: Partial<StatsPlusClient> = {}): StatsPlusClie
     getExports: vi.fn().mockResolvedValue(""),
     getPlayers: vi.fn().mockResolvedValue([]),
     findPlayer: vi.fn().mockResolvedValue([]),
+    startRatingsJob: vi.fn().mockResolvedValue({ poll_url: "https://example.com/poll" }),
     getTeamBatStats: vi.fn().mockResolvedValue([]),
     getTeamPitchStats: vi.fn().mockResolvedValue([]),
     getRatings: vi.fn().mockResolvedValue([]),
@@ -23,8 +24,8 @@ function makeMockClient(overrides: Partial<StatsPlusClient> = {}): StatsPlusClie
 }
 
 describe("toolDefinitions", () => {
-  it("exports 14 tool definitions", () => {
-    expect(toolDefinitions).toHaveLength(14);
+  it("exports 15 tool definitions", () => {
+    expect(toolDefinitions).toHaveLength(15);
   });
 
   it("includes expected tool names", () => {
@@ -37,6 +38,7 @@ describe("toolDefinitions", () => {
     expect(names).toContain("get_exports");
     expect(names).toContain("get_players");
     expect(names).toContain("find_player");
+    expect(names).toContain("start_ratings_job");
     expect(names).toContain("get_ratings");
     expect(names).toContain("get_team_batting_stats");
     expect(names).toContain("get_team_pitching_stats");
@@ -165,17 +167,38 @@ describe("handleTool", () => {
     });
   });
 
+  describe("start_ratings_job", () => {
+    it("calls startRatingsJob", async () => {
+      const client = makeMockClient();
+      await handleTool("start_ratings_job", {}, client);
+      expect(client.startRatingsJob).toHaveBeenCalled();
+    });
+
+    it("returns poll_url from client", async () => {
+      const jobResult = { poll_url: "https://statsplus.net/mbl/api/mycsv/?request=abc" };
+      const client = makeMockClient({ startRatingsJob: vi.fn().mockResolvedValue(jobResult) });
+      const result = await handleTool("start_ratings_job", {}, client);
+      expect(result).toEqual(jobResult);
+    });
+  });
+
   describe("get_ratings", () => {
     it("calls getRatings with no args", async () => {
       const client = makeMockClient();
       await handleTool("get_ratings", {}, client);
-      expect(client.getRatings).toHaveBeenCalledWith({ player_ids: undefined });
+      expect(client.getRatings).toHaveBeenCalledWith({ poll_url: undefined, player_ids: undefined });
     });
 
     it("passes player_ids to getRatings", async () => {
       const client = makeMockClient();
       await handleTool("get_ratings", { player_ids: [52981, 56482] }, client);
-      expect(client.getRatings).toHaveBeenCalledWith({ player_ids: [52981, 56482] });
+      expect(client.getRatings).toHaveBeenCalledWith({ poll_url: undefined, player_ids: [52981, 56482] });
+    });
+
+    it("passes poll_url to getRatings", async () => {
+      const client = makeMockClient();
+      await handleTool("get_ratings", { poll_url: "https://example.com/poll" }, client);
+      expect(client.getRatings).toHaveBeenCalledWith({ poll_url: "https://example.com/poll", player_ids: undefined });
     });
 
     it("returns result from client", async () => {
