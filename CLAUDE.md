@@ -100,14 +100,23 @@ Use `jq` or Python filtering to extract specific players by `player_id` or `ID`.
 ### Minor league players return empty stats arrays
 `get_player_batting_stats`, `get_player_pitching_stats`, and `get_player_fielding_stats` only return MLB-level stats. Players in AAA or below return `[]` even when specifying a `year`. There is no minor league stats endpoint — use `get_ratings` for prospect evaluation instead.
 
-### Undocumented split IDs
-Batting stats occasionally include `split_id: 21` (observed as a small-sample additional row). Only splits 1, 2, 3 are documented. The extra row appears to be postseason or some special split — safe to filter out for analysis.
+### split_id 21 is postseason data
+`split_id: 21` is confirmed postseason. Multiple players from a playoff team all showed 6–7 AB rows (matching a playoff series) under this split, with `pitches_seen` populated (unlike splits 2/3 which always have `pitches_seen: 0`). Filter it out for regular-season analysis. Note that `wpa` and `ubr` are only populated on `split_id: 1` (overall) — splits 2, 3, and 21 always show `wpa: 0` and `ubr: 0`.
 
 ### Player team context in `get_players`
 Minor league players have their affiliate `Team ID` set to the minor league team (e.g., 93 = Durham Bulls), not the MLB parent. The `Parent Team ID` field holds the MLB org. Always use `Parent Team ID` to resolve which MLB team controls a minor league player.
 
+### A player can show Level 1 in roster but have no stats for a given year
+If a player is on the MLB roster (`Level: 1`) in `get_players` but returns `[]` from a stat endpoint with a specific year, they likely had no MLB plate appearances that year (e.g., promoted in the offseason after the season ended, or injured all year). Not a data error — just no qualifying activity.
+
 ### Ratings `Pos` field reflects role, not handedness
 A player listed as `"Pos": "RP"` in ratings is a reliever, not necessarily a right-handed pitcher. The role designation (SP/RP) comes from the OOTP role, not pitching hand. The `Throws` field provides handedness. User-described "RHP" / "LHP" may map to `"RP"` or `"SP"` with `Throws: "R"` / `"L"`.
+
+### WAR in batting stats is full positional WAR, not just batting
+The `war` field accounts for batting, baserunning (`ubr`), and defense. A player with a strong offensive line can have a surprisingly low WAR due to poor speed/baserunning. Always check `ubr` alongside `war` when the numbers seem mismatched.
+
+### Omitting `year` from stat endpoints returns all historical seasons (MLB only)
+Calling `get_player_batting_stats(pid=X)` with no year returns every season on record for that player — useful for career context. This only works for players with MLB history; minor leaguers still return `[]` regardless.
 
 ### Contracts for minor leaguers show $0 salary
 Minor league contracts in `get_contracts` have all `salary0`–`salary14` fields as 0. The `contract_team_id` reflects the MLB parent org, while `team_id` is the current affiliate. `is_major: 0` identifies minor league deals. `season_year: 0` on minor league contracts (vs actual year on MLB deals).
