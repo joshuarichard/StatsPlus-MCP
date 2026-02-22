@@ -36,10 +36,12 @@ tests/
 | `get_player_fielding_stats` | Fielding stats by position; filter by `year`, `pid`, `split` |
 | `get_team_batting_stats` | Team batting stats with rate stats; filter by `year`, `split` |
 | `get_team_pitching_stats` | Team pitching stats with rate stats; filter by `year`, `split` |
-| `get_players` | Player roster with names and team assignments; filter by `team_id` |
-| `get_ratings` | Player ratings (overall, potential, per-attribute); async — waits up to ~5 min |
+| `get_players` | Player roster; filter by `team_id` or `org_id` (all players in an MLB org) |
+| `find_player` | Search players by name (partial, case-insensitive) — resolves name → ID without full roster download |
+| `start_ratings_job` | Fires the async ratings export job and returns a `poll_url` immediately — call at start of workflow |
+| `get_ratings` | Collect ratings results; pass `poll_url` from `start_ratings_job` to skip re-starting the job; filter by `player_ids` |
 | `get_game_history` | All major league games with scores, hits, errors, and pitcher IDs |
-| `get_contracts` | All current and active player contracts |
+| `get_contracts` | Active player contracts; filter by `team_id` (MLB org) or `player_id` |
 | `get_contract_extensions` | Signed extensions taking effect in future seasons |
 | `get_teams` | Team list with IDs and abbreviations |
 | `get_draft` | Draft picks; optionally filter by league `lid` |
@@ -47,15 +49,17 @@ tests/
 
 **Split IDs:** `1` = Overall, `2` = vs Left-handed, `3` = vs Right-handed
 
+**Recommended ratings workflow:** Call `start_ratings_job()` early in your workflow to get a `poll_url`, do other data lookups while the job processes (~60–90s), then call `get_ratings(poll_url)` to collect results without blocking.
+
 **Preseason note:** Player stat endpoints (`batting`, `pitching`, `fielding`) return HTTP 204 (no content) when no games have been played for the requested period. Always pass `year` to get historical data during preseason.
 
 ## API Behavior Notes
 
 - Stat endpoints return CSV; non-stat endpoints (`teams`, `exports`) return JSON or CSV without needing a year filter.
-- The `/players/` endpoint returns roster data including first/last names — useful for resolving `player_id` values returned by stat endpoints.
-- `/teambatstats/` and `/teampitchstats/` exist in the API but are not yet implemented here (pending column schema confirmation from StatsPlus devs).
+- The `/players/` endpoint returns roster data including first/last names — use `find_player(name)` for quick name→ID lookups, or `get_players(org_id)` for a full org roster.
 - All CSV responses are parsed dynamically by column header name, so new columns added by the API will pass through even if not typed in the interface.
-- `/ratings/` is an async background job. The client hits the endpoint to start the job, waits 30s, then polls every 15s. The poll response says `"Request ID ... still in progress, check back soon"` until ready. Typically resolves in 60–90 seconds; times out after ~5 minutes.
+- `/ratings/` is an async background job. `start_ratings_job()` fires the request and returns a `poll_url` immediately. `get_ratings(poll_url)` polls (no initial 30s delay when poll_url is provided). Without poll_url, `get_ratings()` starts a new job, waits 30s, then polls every 15s. Typically resolves in 60–90s total; times out after ~5 minutes.
+- `get_contracts` and `get_players` filtering is client-side — the full dataset is always fetched from the API, then filtered before returning. Filters reduce response payload but not network transfer.
 
 ## Commands
 
@@ -89,13 +93,13 @@ Add to your MCP client config (e.g. `~/.claude/mcp.json`):
 ## Known MCP Tool Quirks (observed in practice)
 
 ### Large payload endpoints save to file
-`get_players`, `get_contracts`, and `get_ratings` all return datasets too large for the context window. The MCP client saves them to a temp file at `~/.claude/projects/.../tool-results/<tool-name>-<timestamp>.txt`. The format is a JSON array with a single `{type: "text", text: "..."}` object. To work with them:
+`get_players`, `get_contracts`, and `get_ratings` can return datasets too large for the context window. When that happens, the MCP client saves output to a temp file at `~/.claude/projects/.../tool-results/<tool-name>-<timestamp>.txt`. The format is a JSON array with a single `{type: "text", text: "..."}` object. To work with them:
 ```python
 import json
 data = json.load(open(file_path))
 records = json.loads(data[0]['text'])
 ```
-Use `jq` or Python filtering to extract specific players by `player_id` or `ID`.
+Use the filter params (`org_id`, `team_id`, `player_id`, `player_ids`) to reduce payload size and avoid hitting the file-save threshold.
 
 ### Minor league players return empty stats arrays
 `get_player_batting_stats`, `get_player_pitching_stats`, and `get_player_fielding_stats` only return MLB-level stats. Players in AAA or below return `[]` even when specifying a `year`. There is no minor league stats endpoint — use `get_ratings` for prospect evaluation instead.
@@ -121,8 +125,8 @@ Calling `get_player_batting_stats(pid=X)` with no year returns every season on r
 ### Contracts for minor leaguers show $0 salary
 Minor league contracts in `get_contracts` have all `salary0`–`salary14` fields as 0. The `contract_team_id` reflects the MLB parent org, while `team_id` is the current affiliate. `is_major: 0` identifies minor league deals. `season_year: 0` on minor league contracts (vs actual year on MLB deals).
 
-### `get_players` `team_id` filter still fetches globally
-When using `get_players` without `team_id`, the full league-wide roster is returned. Consider using the filter when you only care about one team's players to reduce payload size — though the response will still be large for big orgs with many affiliates.
+### `get_players` filtering is client-side
+All three params (`team_id`, `org_id`) filter the response after fetching the full roster. `team_id` is passed to the API as a query param (server-side filtering where supported); `org_id` filters client-side by `Parent Team ID`. For full-org lookups, prefer `org_id` over iterating `team_id` per affiliate. Use `find_player(name)` for single-player name lookups — it avoids needing to process the full roster in the context window.
 
 ## Adding New Endpoints
 
