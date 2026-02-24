@@ -113,6 +113,45 @@ Minor league players have their affiliate `Team ID` set to the minor league team
 ### A player can show Level 1 in roster but have no stats for a given year
 If a player is on the MLB roster (`Level: 1`) in `get_players` but returns `[]` from a stat endpoint with a specific year, they likely had no MLB plate appearances that year (e.g., promoted in the offseason after the season ended, or injured all year). Not a data error — just no qualifying activity.
 
+### Ratings have no OVR field — compute it from components
+The ratings endpoint does not include a composite overall rating. Compute OVR manually using these standard formulas:
+
+```python
+# Hitter OVR (position players)
+# Pow and Cntct are the primary offensive drivers; Eye (walks/OBP) next;
+# Gap is secondary power; Ks avoidance matters least (power hitters still produce)
+def bat_ovr(p):
+    return (p['Pow']   * 0.30 +
+            p['Cntct'] * 0.25 +
+            p['Eye']   * 0.20 +
+            p['Gap']   * 0.15 +
+            p['Ks']    * 0.10)
+
+# Pitcher OVR (SP or RP)
+# Control is the most important attribute (walks are costly); Stuff second (Ks);
+# Movement third (contact quality / GB rate)
+def pit_ovr(p):
+    ctrl = (p['Ctrl_R'] + p['Ctrl_L']) / 2
+    return (ctrl       * 0.40 +
+            p['Stf']   * 0.35 +
+            p['Mov']   * 0.25)
+
+# Potential versions (same weights, Pot- prefix fields)
+def bat_pot(p):
+    return (p['PotPow']   * 0.30 +
+            p['PotCntct'] * 0.25 +
+            p['PotEye']   * 0.20 +
+            p['PotGap']   * 0.15 +
+            p['PotKs']    * 0.10)
+
+def pit_pot(p):
+    return (p['PotCtrl'] * 0.40 +
+            p['PotStf']  * 0.35 +
+            p['PotMov']  * 0.25)
+```
+
+Use these consistently across all analyses. Ratings are on a 20–80 scale; 50 = MLB average, 60+ = above average, 70+ = star, 80 = elite.
+
 ### Ratings `Pos` field reflects role, not handedness
 A player listed as `"Pos": "RP"` in ratings is a reliever, not necessarily a right-handed pitcher. The role designation (SP/RP) comes from the OOTP role, not pitching hand. The `Throws` field provides handedness. User-described "RHP" / "LHP" may map to `"RP"` or `"SP"` with `Throws: "R"` / `"L"`.
 
