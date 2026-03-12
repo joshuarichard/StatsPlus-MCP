@@ -57,7 +57,7 @@ tests/
 
 - Stat endpoints return CSV; non-stat endpoints (`teams`, `exports`) return JSON or CSV without needing a year filter.
 - The `/players/` endpoint returns roster data including first/last names — use `find_player(name)` for quick name→ID lookups, or `get_players(org_id)` for a full org roster.
-- All CSV responses are parsed dynamically by column header name, so new columns added by the API will pass through even if not typed in the interface.
+- All CSV responses are parsed dynamically by column header name, so new columns added by the API will pass through even if not typed in the interface. Number coercion only applies to trimmed, non-empty values (whitespace-only and hex strings are kept as strings).
 - `/ratings/` is an async background job. `start_ratings_job()` fires the request and returns a `poll_url` immediately. `get_ratings(poll_url)` polls (no initial 30s delay when poll_url is provided). Without poll_url, `get_ratings()` starts a new job, waits 30s, then polls every 15s. Typically resolves in 60–90s total; times out after ~5 minutes.
 - `get_contracts` and `get_players` filtering is client-side — the full dataset is always fetched from the API, then filtered before returning. Filters reduce response payload but not network transfer.
 - `/players/` responses are cached for 60 seconds in `StatsPlusClient`. Both `getPlayers()` and `findPlayer()` share the cache, so sequential calls (e.g. find a player then get their org roster) reuse one API request.
@@ -172,7 +172,7 @@ Both `team_id` and `org_id` filter the response after fetching the full roster f
 
 1. Verify the endpoint against the live API with `curl` using `year=<latest>` to confirm it returns data
 2. Add types to `src/types.ts` (column names must match the CSV header exactly)
-3. Add a method to `StatsPlusClient` in `src/client.ts`
+3. Add a method to `StatsPlusClient` in `src/client.ts` (use `this.fetch()` for relative API paths, `this.fetchAbsolute()` for full URLs)
 4. Add a tool definition with a `handler` function in `src/tools.ts`
 5. Add tests in `tests/` using real column names from the live response
 6. Run `npm test` and `npm run build` to verify

@@ -356,7 +356,7 @@ describe("StatsPlusClient", () => {
 
       // Attach rejection handler before advancing timers to avoid unhandled rejection warning
       const promise = client.getRatings();
-      const assertion = expect(promise).rejects.toThrow("Ratings poll error: 500");
+      const assertion = expect(promise).rejects.toThrow("StatsPlus API error: 500");
       await vi.runAllTimersAsync();
       await assertion;
     });

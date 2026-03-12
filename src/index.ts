@@ -7,7 +7,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { StatsPlusClient } from "./client.js";
-import { toolDefinitions, handleTool } from "./tools.js";
+import { toolDefinitions, toolMap, handleTool } from "./tools.js";
 
 const LEAGUE_URL = process.env.STATSPLUS_LEAGUE_URL;
 const COOKIE = process.env.STATSPLUS_COOKIE;
@@ -45,7 +45,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
-  const toolDef = toolDefinitions.find((t) => t.name === name);
+  const toolDef = toolMap.get(name);
   if (!toolDef) {
     return {
       content: [{ type: "text", text: `Unknown tool: ${name}` }],

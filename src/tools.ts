@@ -145,7 +145,8 @@ export const toolDefinitions = [
 
 type ToolName = (typeof toolDefinitions)[number]["name"];
 
-const toolMap = new Map(toolDefinitions.map((t) => [t.name, t]));
+export const toolMap: ReadonlyMap<string, (typeof toolDefinitions)[number]> =
+  new Map(toolDefinitions.map((t) => [t.name, t]));
 
 export async function handleTool(
   name: ToolName,

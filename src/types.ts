@@ -457,7 +457,6 @@ export interface GetContractsParams {
 // JSON object keyed by date (YYYY-MM-DD) → array of team IDs for games on that date.
 // Also includes a "current_date" key with today's simulated date.
 
-export interface ExportsResponse {
+export type ExportsResponse = {
   current_date: string;
-  [date: string]: number[] | string;
-}
+} & Record<string, number[] | string>;

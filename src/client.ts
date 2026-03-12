@@ -41,8 +41,9 @@ function parseCsv(text: string): Record<string, string | number>[] {
     const row: Record<string, string | number> = {};
     for (let j = 0; j < headers.length; j++) {
       const raw = values[j] ?? "";
-      const num = Number(raw);
-      row[headers[j]] = raw !== "" && !isNaN(num) ? num : raw;
+      // Only coerce trimmed, non-empty strings to avoid whitespace → 0 and hex coercion
+      const num = raw !== "" && raw.trim() === raw ? Number(raw) : NaN;
+      row[headers[j]] = !isNaN(num) ? num : raw;
     }
     rows.push(row);
   }
@@ -110,8 +111,13 @@ export class StatsPlusClient {
         url.searchParams.set(key, String(value));
       }
     }
+    return this.fetchAbsolute(url.toString());
+  }
 
-    const response = await fetch(url.toString(), {
+  // Fetch an absolute URL with standard headers and error handling.
+  // Used by the ratings poll loop where the URL comes from the API response.
+  private async fetchAbsolute(url: string): Promise<Response> {
+    const response = await fetch(url, {
       method: "GET",
       headers: this.headers,
     });
@@ -131,6 +137,7 @@ export class StatsPlusClient {
   private async getCsv<T>(path: string, params: Record<string, string | number | undefined> = {}): Promise<T[]> {
     const response = await this.fetch(path, params);
     const text = await response.text();
+    // HTTP 204 (no content) returns "" during preseason — parseCsv("") returns []
     return parseCsv(text) as T[];
   }
 
@@ -251,15 +258,7 @@ export class StatsPlusClient {
     }
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      const pollResponse = await fetch(pollUrl, {
-        method: "GET",
-        headers: this.headers,
-      });
-
-      if (!pollResponse.ok) {
-        throw new Error(`Ratings poll error: ${pollResponse.status} ${pollResponse.statusText}`);
-      }
-
+      const pollResponse = await this.fetchAbsolute(pollUrl);
       const pollText = await pollResponse.text();
 
       // Still processing if response contains "still in progress" or "Request received"
