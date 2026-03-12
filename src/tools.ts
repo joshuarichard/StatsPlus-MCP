@@ -5,6 +5,8 @@ export const splitIdSchema = z.union([z.literal(1), z.literal(2), z.literal(3)])
   "Split ID: 1 = Overall, 2 = vs Left-handed, 3 = vs Right-handed"
 );
 
+type ToolHandler = (args: Record<string, unknown>, client: StatsPlusClient) => Promise<unknown>;
+
 export const toolDefinitions = [
   {
     name: "get_player_batting_stats",
@@ -15,6 +17,7 @@ export const toolDefinitions = [
       pid: z.number().int().positive().optional().describe("Player ID for a single player"),
       split: splitIdSchema,
     }),
+    handler: ((a, c) => c.getPlayerBatStats(a)) as ToolHandler,
   },
   {
     name: "get_player_fielding_stats",
@@ -25,6 +28,7 @@ export const toolDefinitions = [
       pid: z.number().int().positive().optional().describe("Player ID for a single player"),
       split: splitIdSchema,
     }),
+    handler: ((a, c) => c.getPlayerFieldStats(a)) as ToolHandler,
   },
   {
     name: "get_player_pitching_stats",
@@ -35,6 +39,7 @@ export const toolDefinitions = [
       pid: z.number().int().positive().optional().describe("Player ID for a single player"),
       split: splitIdSchema,
     }),
+    handler: ((a, c) => c.getPlayerPitchStats(a)) as ToolHandler,
   },
   {
     name: "get_team_batting_stats",
@@ -43,6 +48,7 @@ export const toolDefinitions = [
       year: z.number().int().min(1900).max(2100).optional().describe("Season year, e.g. 2058"),
       split: splitIdSchema,
     }),
+    handler: ((a, c) => c.getTeamBatStats(a)) as ToolHandler,
   },
   {
     name: "get_team_pitching_stats",
@@ -51,11 +57,13 @@ export const toolDefinitions = [
       year: z.number().int().min(1900).max(2100).optional().describe("Season year, e.g. 2058"),
       split: splitIdSchema,
     }),
+    handler: ((a, c) => c.getTeamPitchStats(a)) as ToolHandler,
   },
   {
     name: "get_teams",
     description: "Retrieve the list of teams in the league with their IDs and abbreviations.",
     inputSchema: z.object({}),
+    handler: ((_a, c) => c.getTeams()) as ToolHandler,
   },
   {
     name: "get_draft",
@@ -63,18 +71,21 @@ export const toolDefinitions = [
     inputSchema: z.object({
       lid: z.number().int().positive().optional().describe("League ID for associations with multiple drafts"),
     }),
+    handler: ((a, c) => c.getDraft(a)) as ToolHandler,
   },
   {
     name: "get_exports",
     description:
       "Retrieve a CSV export of all major league games since the league started, including scores, starting pitchers, winning/losing pitchers, and game dates.",
     inputSchema: z.object({}),
+    handler: ((_a, c) => c.getExports()) as ToolHandler,
   },
   {
     name: "start_ratings_job",
     description:
       "Start the async ratings export job and return a poll_url immediately, without waiting. Call this at the beginning of a workflow, do other data lookups while the job processes (~60–90s), then call get_ratings(poll_url) to collect results. This avoids blocking the workflow mid-step.",
     inputSchema: z.object({}),
+    handler: ((_a, c) => c.startRatingsJob()) as ToolHandler,
   },
   {
     name: "get_ratings",
@@ -86,12 +97,14 @@ export const toolDefinitions = [
       player_ids: z.array(z.number().int().positive()).optional()
         .describe("Filter results to specific player IDs. The full async job still runs, but only matching players are returned."),
     }),
+    handler: ((a, c) => c.getRatings(a)) as ToolHandler,
   },
   {
     name: "get_game_history",
     description:
       "Retrieve all major league games since the league started, including scores, hitting, pitchers, and game dates.",
     inputSchema: z.object({}),
+    handler: ((_a, c) => c.getGameHistory()) as ToolHandler,
   },
   {
     name: "get_contracts",
@@ -102,11 +115,13 @@ export const toolDefinitions = [
       player_id: z.number().int().positive().optional()
         .describe("Player ID to fetch a single player's contract"),
     }),
+    handler: ((a, c) => c.getContracts(a)) as ToolHandler,
   },
   {
     name: "get_contract_extensions",
     description: "Retrieve signed contract extensions that take effect in future seasons.",
     inputSchema: z.object({}),
+    handler: ((_a, c) => c.getContractExtensions()) as ToolHandler,
   },
   {
     name: "get_players",
@@ -116,6 +131,7 @@ export const toolDefinitions = [
       org_id: z.number().int().positive().optional()
         .describe("MLB org team ID — returns all players in the org (MLB roster + all affiliates) by filtering on Parent Team ID"),
     }),
+    handler: ((a, c) => c.getPlayers(a)) as ToolHandler,
   },
   {
     name: "find_player",
@@ -123,94 +139,20 @@ export const toolDefinitions = [
     inputSchema: z.object({
       name: z.string().describe("Name to search (partial, case-insensitive match on first name, last name, or full name)"),
     }),
+    handler: ((a, c) => c.findPlayer(a as { name: string })) as ToolHandler,
   },
 ] as const;
 
 type ToolName = (typeof toolDefinitions)[number]["name"];
+
+const toolMap = new Map(toolDefinitions.map((t) => [t.name, t]));
 
 export async function handleTool(
   name: ToolName,
   args: Record<string, unknown>,
   client: StatsPlusClient
 ): Promise<unknown> {
-  switch (name) {
-    case "get_player_fielding_stats":
-      return client.getPlayerFieldStats({
-        year: args.year as number | undefined,
-        pid: args.pid as number | undefined,
-        split: args.split as 1 | 2 | 3 | undefined,
-      });
-
-    case "get_player_batting_stats":
-      return client.getPlayerBatStats({
-        year: args.year as number | undefined,
-        pid: args.pid as number | undefined,
-        split: args.split as 1 | 2 | 3 | undefined,
-      });
-
-    case "get_player_pitching_stats":
-      return client.getPlayerPitchStats({
-        year: args.year as number | undefined,
-        pid: args.pid as number | undefined,
-        split: args.split as 1 | 2 | 3 | undefined,
-      });
-
-    case "get_team_batting_stats":
-      return client.getTeamBatStats({
-        year: args.year as number | undefined,
-        split: args.split as 1 | 2 | 3 | undefined,
-      });
-
-    case "get_team_pitching_stats":
-      return client.getTeamPitchStats({
-        year: args.year as number | undefined,
-        split: args.split as 1 | 2 | 3 | undefined,
-      });
-
-    case "get_teams":
-      return client.getTeams();
-
-    case "get_draft":
-      return client.getDraft({
-        lid: args.lid as number | undefined,
-      });
-
-    case "start_ratings_job":
-      return client.startRatingsJob();
-
-    case "get_ratings":
-      return client.getRatings({
-        poll_url: args.poll_url as string | undefined,
-        player_ids: args.player_ids as number[] | undefined,
-      });
-
-    case "get_game_history":
-      return client.getGameHistory();
-
-    case "get_contracts":
-      return client.getContracts({
-        team_id: args.team_id as number | undefined,
-        player_id: args.player_id as number | undefined,
-      });
-
-    case "get_contract_extensions":
-      return client.getContractExtensions();
-
-    case "get_exports":
-      return client.getExports();
-
-    case "get_players":
-      return client.getPlayers({
-        team_id: args.team_id as number | undefined,
-        org_id: args.org_id as number | undefined,
-      });
-
-    case "find_player":
-      return client.findPlayer({
-        name: args.name as string,
-      });
-
-    default:
-      throw new Error(`Unknown tool: ${name}`);
-  }
+  const tool = toolMap.get(name);
+  if (!tool) throw new Error(`Unknown tool: ${name}`);
+  return tool.handler(args, client);
 }

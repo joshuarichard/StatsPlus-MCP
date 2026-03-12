@@ -470,29 +470,25 @@ describe("StatsPlusClient", () => {
     const header = 'ID,"First Name","Last Name","Team ID","Parent Team ID",Level,Pos,Role,Age,Retired';
 
     it("calls the /players/ endpoint", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
       mockCsvResponse(`${header}\n`);
-      await client.getPlayers();
+      await c.getPlayers();
       const [url] = mockFetch.mock.calls[0] as [string];
       expect(url).toContain("/api/players/");
     });
 
-    it("appends team_id param when provided", async () => {
-      mockCsvResponse(`${header}\n`);
-      await client.getPlayers({ team_id: 7 });
-      const [url] = mockFetch.mock.calls[0] as [string];
-      expect(url).toContain("team_id=7");
-    });
-
-    it("omits team_id param when not provided", async () => {
-      mockCsvResponse(`${header}\n`);
-      await client.getPlayers();
-      const [url] = mockFetch.mock.calls[0] as [string];
-      expect(url).not.toContain("team_id");
+    it("filters by team_id client-side", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
+      mockCsvResponse(`${header}\n1,John,Doe,7,0,MLB,SP,Starter,28,\n2,Bob,Jones,5,5,MLB,RP,Reliever,30,`);
+      const result = await c.getPlayers({ team_id: 7 });
+      expect(result).toHaveLength(1);
+      expect(result[0].ID).toBe(1);
     });
 
     it("parses CSV response into Player objects", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
       mockCsvResponse(`${header}\n1,John,Doe,7,0,MLB,SP,Starter,28,`);
-      const result = await client.getPlayers();
+      const result = await c.getPlayers();
       expect(result).toHaveLength(1);
       expect(result[0].ID).toBe(1);
       expect(result[0]["First Name"]).toBe("John");
@@ -502,23 +498,36 @@ describe("StatsPlusClient", () => {
     });
 
     it("filters by org_id on Parent Team ID", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
       mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Jane,Smith,93,851,A,OF,Starter,22,\n3,Bob,Jones,5,5,MLB,RP,Reliever,30,`);
-      const result = await client.getPlayers({ org_id: 851 });
+      const result = await c.getPlayers({ org_id: 851 });
       expect(result).toHaveLength(2);
       expect(result[0].ID).toBe(1);
       expect(result[1].ID).toBe(2);
     });
 
     it("includes MLB-level players whose Team ID matches org_id", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
       mockCsvResponse(`${header}\n1,John,Doe,851,851,MLB,SP,Starter,28,\n2,Jane,Smith,93,851,A,OF,Starter,22,\n3,Bob,Jones,5,5,MLB,RP,Reliever,30,`);
-      const result = await client.getPlayers({ org_id: 851 });
+      const result = await c.getPlayers({ org_id: 851 });
       expect(result).toHaveLength(2);
     });
 
     it("returns all players when org_id is not provided", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
       mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Bob,Jones,5,5,MLB,RP,Reliever,30,`);
-      const result = await client.getPlayers();
+      const result = await c.getPlayers();
       expect(result).toHaveLength(2);
+    });
+
+    it("uses cached players on second call within TTL", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
+      mockCsvResponse(`${header}\n1,John,Doe,7,0,MLB,SP,Starter,28,`);
+      await c.getPlayers();
+      // Second call should not trigger another fetch
+      const result = await c.getPlayers();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(result).toHaveLength(1);
     });
   });
 
@@ -526,43 +535,59 @@ describe("StatsPlusClient", () => {
     const header = 'ID,"First Name","Last Name","Team ID","Parent Team ID",Level,Pos,Role,Age,Retired';
 
     it("calls the /players/ endpoint", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
       mockCsvResponse(`${header}\n`);
-      await client.findPlayer({ name: "Doe" });
+      await c.findPlayer({ name: "Doe" });
       const [url] = mockFetch.mock.calls[0] as [string];
       expect(url).toContain("/api/players/");
     });
 
     it("filters by last name (case-insensitive)", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
       mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Jane,Smith,7,851,MLB,OF,Starter,25,`);
-      const result = await client.findPlayer({ name: "doe" });
+      const result = await c.findPlayer({ name: "doe" });
       expect(result).toHaveLength(1);
       expect(result[0].ID).toBe(1);
     });
 
     it("filters by first name (case-insensitive)", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
       mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Jane,Smith,7,851,MLB,OF,Starter,25,`);
-      const result = await client.findPlayer({ name: "jane" });
+      const result = await c.findPlayer({ name: "jane" });
       expect(result).toHaveLength(1);
       expect(result[0].ID).toBe(2);
     });
 
     it("filters by partial full name", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
       mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Jane,Smith,7,851,MLB,OF,Starter,25,`);
-      const result = await client.findPlayer({ name: "john doe" });
+      const result = await c.findPlayer({ name: "john doe" });
       expect(result).toHaveLength(1);
       expect(result[0].ID).toBe(1);
     });
 
     it("returns empty array when no match", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
       mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,`);
-      const result = await client.findPlayer({ name: "xyz" });
+      const result = await c.findPlayer({ name: "xyz" });
       expect(result).toHaveLength(0);
     });
 
     it("returns multiple matches for partial name", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
       mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Johnny,Doeby,7,851,MLB,OF,Starter,25,\n3,Bob,Smith,5,5,MLB,RP,Reliever,30,`);
-      const result = await client.findPlayer({ name: "john" });
+      const result = await c.findPlayer({ name: "john" });
       expect(result).toHaveLength(2);
+    });
+
+    it("shares cache with getPlayers", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
+      mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Jane,Smith,7,851,MLB,OF,Starter,25,`);
+      await c.getPlayers();
+      // findPlayer should reuse cached data
+      const result = await c.findPlayer({ name: "jane" });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(result).toHaveLength(1);
     });
   });
 

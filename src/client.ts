@@ -89,6 +89,8 @@ function parseCsvRow(line: string): string[] {
 export class StatsPlusClient {
   private baseUrl: string;
   private headers: Record<string, string>;
+  private playersCache: { data: Player[]; ts: number } | null = null;
+  private readonly PLAYERS_CACHE_TTL = 60_000; // 1 minute
 
   constructor(config: StatsPlusConfig) {
     this.baseUrl = `https://statsplus.net/${config.leagueUrl.replace(/^\/|\/$/g, "")}/api`;
@@ -180,20 +182,31 @@ export class StatsPlusClient {
     });
   }
 
+  private async getAllPlayers(): Promise<Player[]> {
+    const now = Date.now();
+    if (this.playersCache && now - this.playersCache.ts < this.PLAYERS_CACHE_TTL) {
+      return this.playersCache.data;
+    }
+    const data = await this.getCsv<Player>("/players/", {});
+    this.playersCache = { data, ts: now };
+    return data;
+  }
+
   async getPlayers(params: GetPlayersParams = {}): Promise<Player[]> {
-    const players = await this.getCsv<Player>("/players/", {
-      team_id: params.team_id,
-    });
+    const players = await this.getAllPlayers();
+    let result = params.team_id !== undefined
+      ? players.filter((p) => p["Team ID"] === params.team_id)
+      : players;
     if (params.org_id !== undefined) {
-      return players.filter(
+      result = result.filter(
         (p) => p["Parent Team ID"] === params.org_id || p["Team ID"] === params.org_id
       );
     }
-    return players;
+    return result;
   }
 
   async findPlayer(params: FindPlayerParams): Promise<Player[]> {
-    const players = await this.getCsv<Player>("/players/", {});
+    const players = await this.getAllPlayers();
     const query = params.name.toLowerCase();
     return players.filter((p) => {
       const first = String(p["First Name"]).toLowerCase();
