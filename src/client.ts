@@ -227,7 +227,7 @@ export class StatsPlusClient {
   private async initiateRatingsJob(): Promise<string> {
     const initResponse = await this.fetch("/ratings/");
     const initText = await initResponse.text();
-    const urlMatch = initText.match(/https?:\/\/[^\s]+/);
+    const urlMatch = initText.match(/https?:\/\/[^\s]*\?request=[^\s]+/);
     if (!urlMatch) {
       throw new Error(`Unexpected /ratings/ response: ${initText}`);
     }
