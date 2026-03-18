@@ -11,33 +11,36 @@ export const toolDefinitions = [
   {
     name: "get_player_batting_stats",
     description:
-      "Retrieve player batting statistics. Returns stat lines with splits. Omit all params to get all players for all seasons.",
+      "Retrieve player batting statistics. Returns stat lines with splits. Defaults to top-level (MLB) leagues; pass lid to get stats for a specific league (e.g. minor leagues). Omit all params to get all players for all seasons.",
     inputSchema: z.object({
       year: z.number().int().min(1900).max(2100).optional().describe("Season year, e.g. 2024"),
       pid: z.number().int().positive().optional().describe("Player ID for a single player"),
       split: splitIdSchema,
+      lid: z.number().int().positive().optional().describe("League ID — defaults to all top-level leagues; pass a specific league ID to get minor league stats"),
     }),
     handler: ((a, c) => c.getPlayerBatStats(a)) as ToolHandler,
   },
   {
     name: "get_player_fielding_stats",
     description:
-      "Retrieve player fielding statistics by position. Returns stat lines with splits. Omit all params to get all players for all seasons.",
+      "Retrieve player fielding statistics by position. Returns stat lines with splits. Defaults to top-level (MLB) leagues; pass lid to get stats for a specific league. Omit all params to get all players for all seasons.",
     inputSchema: z.object({
       year: z.number().int().min(1900).max(2100).optional().describe("Season year, e.g. 2024"),
       pid: z.number().int().positive().optional().describe("Player ID for a single player"),
       split: splitIdSchema,
+      lid: z.number().int().positive().optional().describe("League ID — defaults to all top-level leagues; pass a specific league ID to get minor league stats"),
     }),
     handler: ((a, c) => c.getPlayerFieldStats(a)) as ToolHandler,
   },
   {
     name: "get_player_pitching_stats",
     description:
-      "Retrieve player pitching statistics. Returns stat lines with splits. Omit all params to get all players for all seasons.",
+      "Retrieve player pitching statistics. Returns stat lines with splits. Defaults to top-level (MLB) leagues; pass lid to get stats for a specific league (e.g. minor leagues). Omit all params to get all players for all seasons.",
     inputSchema: z.object({
       year: z.number().int().min(1900).max(2100).optional().describe("Season year, e.g. 2024"),
       pid: z.number().int().positive().optional().describe("Player ID for a single player"),
       split: splitIdSchema,
+      lid: z.number().int().positive().optional().describe("League ID — defaults to all top-level leagues; pass a specific league ID to get minor league stats"),
     }),
     handler: ((a, c) => c.getPlayerPitchStats(a)) as ToolHandler,
   },

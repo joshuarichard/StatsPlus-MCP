@@ -30,9 +30,9 @@ Both variables are configured in your MCP client config (e.g. `~/.claude/mcp.jso
 
 | Tool | Description |
 |---|---|
-| `get_player_batting_stats` | Batting stats; filter by `year`, `pid`, `split` |
-| `get_player_pitching_stats` | Pitching stats; filter by `year`, `pid`, `split` |
-| `get_player_fielding_stats` | Fielding stats by position; filter by `year`, `pid`, `split` |
+| `get_player_batting_stats` | Batting stats; filter by `year`, `pid`, `split`, `lid` |
+| `get_player_pitching_stats` | Pitching stats; filter by `year`, `pid`, `split`, `lid` |
+| `get_player_fielding_stats` | Fielding stats by position; filter by `year`, `pid`, `split`, `lid` |
 | `get_team_batting_stats` | Team batting stats with rate stats; filter by `year`, `split` |
 | `get_team_pitching_stats` | Team pitching stats with rate stats; filter by `year`, `split` |
 | `get_players` | Player roster; filter by `team_id` or `org_id` (all players in an MLB org) |
@@ -56,7 +56,7 @@ Both variables are configured in your MCP client config (e.g. `~/.claude/mcp.jso
 
 - Stat endpoints return CSV; non-stat endpoints (`teams`, `exports`) return JSON or CSV without needing a year filter.
 - The `/players/` endpoint returns roster data including first/last names — use `find_player(name)` for quick name→ID lookups, or `get_players(org_id)` for a full org roster.
-- All CSV responses are parsed dynamically by column header name, so new columns added by the API will pass through even if not typed in the interface. Number coercion only applies to trimmed, non-empty values (whitespace-only and hex strings are kept as strings).
+- All CSV responses are parsed dynamically by column header name, so new columns added by the API will pass through even if not typed in the interface. Number coercion applies to non-empty values where `raw.trim() === raw` (i.e. no leading/trailing whitespace). Note: data lines are trimmed before parsing, and hex strings like `0x1F` are coerced to numbers by JS `Number()`.
 - `/ratings/` is an async background job. `start_ratings_job()` fires the request and returns a `poll_url` immediately. `get_ratings(poll_url)` polls (no initial 30s delay when poll_url is provided). Without poll_url, `get_ratings()` starts a new job, waits 30s, then polls every 15s. Typically resolves in 60–90s total; times out after ~5 minutes.
 - `get_contracts` and `get_players` filtering is client-side — the full dataset is always fetched from the API, then filtered before returning. Filters reduce response payload but not network transfer.
 - `/players/` responses are cached for 60 seconds in `StatsPlusClient`. Both `getPlayers()` and `findPlayer()` share the cache, so sequential calls (e.g. find a player then get their org roster) reuse one API request.
@@ -101,8 +101,8 @@ records = json.loads(data[0]['text'])
 ```
 Use the filter params (`org_id`, `team_id`, `player_id`, `player_ids`) to reduce payload size and avoid hitting the file-save threshold.
 
-### Minor league players return empty stats arrays
-`get_player_batting_stats`, `get_player_pitching_stats`, and `get_player_fielding_stats` only return MLB-level stats. Players in AAA or below return `[]` even when specifying a `year`. There is no minor league stats endpoint — use `get_ratings` for prospect evaluation instead.
+### Minor league stats require the `lid` parameter
+By default, `get_player_batting_stats`, `get_player_pitching_stats`, and `get_player_fielding_stats` only return top-level (MLB) league stats. To get minor league stats, pass the `lid` (league ID) parameter for the specific minor league (e.g. `lid=101` for AAA, `lid=102` for AA, `lid=103` for A+). Without `lid`, minor league players return `[]`. Note: `get_player_fielding_stats` may return HTTP 204 for some minor league levels even with `lid`.
 
 ### split_id 21 is postseason data
 `split_id: 21` is confirmed postseason. Multiple players from a playoff team all showed 6–7 AB rows (matching a playoff series) under this split, with `pitches_seen` populated (unlike splits 2/3 which always have `pitches_seen: 0`). Filter it out for regular-season analysis. Note that `wpa` and `ubr` are only populated on `split_id: 1` (overall) — splits 2, 3, and 21 always show `wpa: 0` and `ubr: 0`.

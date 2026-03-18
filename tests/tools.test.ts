@@ -69,13 +69,14 @@ describe("handleTool", () => {
         year: undefined,
         pid: undefined,
         split: undefined,
+        lid: undefined,
       });
     });
 
-    it("passes year, pid, and split to getPlayerBatStats", async () => {
+    it("passes year, pid, split, and lid to getPlayerBatStats", async () => {
       const client = makeMockClient();
-      await handleTool("get_player_batting_stats", { year: 2024, pid: 7, split: 1 }, client);
-      expect(client.getPlayerBatStats).toHaveBeenCalledWith({ year: 2024, pid: 7, split: 1 });
+      await handleTool("get_player_batting_stats", { year: 2024, pid: 7, split: 1, lid: 101 }, client);
+      expect(client.getPlayerBatStats).toHaveBeenCalledWith({ year: 2024, pid: 7, split: 1, lid: 101 });
     });
 
     it("returns result from client", async () => {
@@ -94,13 +95,14 @@ describe("handleTool", () => {
         year: undefined,
         pid: undefined,
         split: undefined,
+        lid: undefined,
       });
     });
 
-    it("passes year, pid, and split to getPlayerFieldStats", async () => {
+    it("passes year, pid, split, and lid to getPlayerFieldStats", async () => {
       const client = makeMockClient();
-      await handleTool("get_player_fielding_stats", { year: 2024, pid: 7, split: 2 }, client);
-      expect(client.getPlayerFieldStats).toHaveBeenCalledWith({ year: 2024, pid: 7, split: 2 });
+      await handleTool("get_player_fielding_stats", { year: 2024, pid: 7, split: 2, lid: 103 }, client);
+      expect(client.getPlayerFieldStats).toHaveBeenCalledWith({ year: 2024, pid: 7, split: 2, lid: 103 });
     });
 
     it("returns result from client", async () => {
@@ -112,13 +114,25 @@ describe("handleTool", () => {
   });
 
   describe("get_player_pitching_stats", () => {
-    it("calls getPlayerPitchStats with params", async () => {
+    it("calls getPlayerPitchStats with no args", async () => {
       const client = makeMockClient();
-      await handleTool("get_player_pitching_stats", { year: 2023, split: 2 }, client);
+      await handleTool("get_player_pitching_stats", {}, client);
+      expect(client.getPlayerPitchStats).toHaveBeenCalledWith({
+        year: undefined,
+        pid: undefined,
+        split: undefined,
+        lid: undefined,
+      });
+    });
+
+    it("passes year, pid, split, and lid to getPlayerPitchStats", async () => {
+      const client = makeMockClient();
+      await handleTool("get_player_pitching_stats", { year: 2023, split: 2, lid: 102 }, client);
       expect(client.getPlayerPitchStats).toHaveBeenCalledWith({
         year: 2023,
         pid: undefined,
         split: 2,
+        lid: 102,
       });
     });
   });

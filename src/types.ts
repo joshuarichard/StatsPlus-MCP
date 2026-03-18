@@ -14,6 +14,7 @@ export interface PlayerBatStatsParams {
   year?: number;
   pid?: number;
   split?: SplitId;
+  lid?: number;
 }
 
 export interface PlayerBatStatLine {
@@ -62,6 +63,7 @@ export interface PlayerPitchStatsParams {
   year?: number;
   pid?: number;
   split?: SplitId;
+  lid?: number;
 }
 
 export interface PlayerPitchStatLine {
@@ -170,6 +172,7 @@ export interface PlayerFieldStatsParams {
   year?: number;
   pid?: number;
   split?: SplitId;
+  lid?: number;
 }
 
 export interface PlayerFieldStatLine {

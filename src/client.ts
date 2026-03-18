@@ -146,6 +146,7 @@ export class StatsPlusClient {
       year: params.year,
       pid: params.pid,
       split: params.split,
+      lid: params.lid,
     });
   }
 
@@ -154,6 +155,7 @@ export class StatsPlusClient {
       year: params.year,
       pid: params.pid,
       split: params.split,
+      lid: params.lid,
     });
   }
 
@@ -162,6 +164,7 @@ export class StatsPlusClient {
       year: params.year,
       pid: params.pid,
       split: params.split,
+      lid: params.lid,
     });
   }
 

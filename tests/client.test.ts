@@ -81,6 +81,25 @@ describe("parseCsv", () => {
     expect(result[0].name).toBe("Alice");
   });
 
+  it("trims data lines before parsing (whitespace-only line becomes empty fields)", () => {
+    const result = parseCsv("a,b\n , ");
+    // Line " , " is trimmed to "," → both fields are empty strings
+    expect(result[0].a).toBe("");
+    expect(result[0].b).toBe("");
+  });
+
+  it("keeps values with leading/trailing whitespace as strings (no numeric coercion)", () => {
+    // raw.trim() !== raw when whitespace is inside a quoted field
+    const result = parseCsv('val\n" 42 "');
+    expect(result[0].val).toBe(" 42 ");
+  });
+
+  it("coerces hex strings to numbers", () => {
+    // Number("0x1F") === 31 in JS; the parser does not special-case hex
+    const result = parseCsv("val\n0x1F");
+    expect(result[0].val).toBe(31);
+  });
+
   it("handles CRLF line endings", () => {
     const result = parseCsv("id,name\r\n1,Alice\r\n");
     expect(result).toHaveLength(1);
@@ -150,6 +169,20 @@ describe("StatsPlusClient", () => {
       expect(url).toContain("split=1");
     });
 
+    it("appends lid param when provided", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getPlayerBatStats({ year: 2058, lid: 101 });
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("lid=101");
+    });
+
+    it("does not append lid param when omitted", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getPlayerBatStats({ year: 2058 });
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).not.toContain("lid=");
+    });
+
     it("parses CSV rows into PlayerBatStatLine objects", async () => {
       mockCsvResponse(`${header}\n1,65,2058,7,0,100,1,1,1,512,152,107,559,1967,151,141,28,1,12,62,61,10,5,39,1,9,1,0,7,0,-0.0155,0,-4.1117,3.3645`);
       const result = await client.getPlayerBatStats({ year: 2058 });
@@ -158,6 +191,12 @@ describe("StatsPlusClient", () => {
       expect(result[0].year).toBe(2058);
       expect(result[0].ab).toBe(512);
       expect(result[0].war).toBe(3.3645);
+    });
+
+    it("returns empty array for HTTP 204 (preseason / no content)", async () => {
+      mockCsvResponse("", 204);
+      const result = await client.getPlayerBatStats({ year: 2059 });
+      expect(result).toEqual([]);
     });
   });
 
@@ -180,6 +219,20 @@ describe("StatsPlusClient", () => {
       expect(url).toContain("split=2");
     });
 
+    it("appends lid param when provided", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getPlayerFieldStats({ year: 2058, lid: 100 });
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("lid=100");
+    });
+
+    it("does not append lid param when omitted", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getPlayerFieldStats({ year: 2058 });
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).not.toContain("lid=");
+    });
+
     it("parses CSV into PlayerFieldStatLine objects", async () => {
       mockCsvResponse(`${header}\n464,65,2058,7,100,1,0,6,470,311,149,0,971,123,113,10,60,0,0,0,0,2,326,317,10,302,283,27,20,44,24,58,18,67,13,12,0,0.0,0.0,5.4636`);
       const result = await client.getPlayerFieldStats();
@@ -189,23 +242,63 @@ describe("StatsPlusClient", () => {
       expect(result[0].e).toBe(10);
       expect(result[0].zr).toBe(5.4636);
     });
+
+    it("returns empty array for HTTP 204 (no content)", async () => {
+      mockCsvResponse("", 204);
+      const result = await client.getPlayerFieldStats({ year: 2058, lid: 101 });
+      expect(result).toEqual([]);
+    });
   });
 
   describe("getPlayerPitchStats", () => {
+    const header = "id,player_id,year,team_id,game_id,league_id,level_id,split_id,ip,ab,tb,ha,k,bf,rs,bb,r,er,gb,fb,pi,ipf,g,gs,w,l,s,sa,da,sh,sf,ta,hra,bk,ci,iw,wp,hp,gf,dp,qs,svo,bs,ra,cg,sho,sb,cs,hld,ir,irs,wpa,li,stint,outs,sd,md,war,ra9war";
+
     it("calls the /playerpitchstatsv2/ endpoint", async () => {
-      mockCsvResponse("id,player_id,year\n");
+      mockCsvResponse(`${header}\n`);
       await client.getPlayerPitchStats();
       const [url] = mockFetch.mock.calls[0] as [string];
       expect(url).toContain("/api/playerpitchstatsv2/");
     });
 
     it("appends year, pid, and split params", async () => {
-      mockCsvResponse("id,player_id\n");
+      mockCsvResponse(`${header}\n`);
       await client.getPlayerPitchStats({ year: 2057, pid: 99, split: 3 });
       const [url] = mockFetch.mock.calls[0] as [string];
       expect(url).toContain("year=2057");
       expect(url).toContain("pid=99");
       expect(url).toContain("split=3");
+    });
+
+    it("appends lid param when provided", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getPlayerPitchStats({ year: 2058, lid: 102 });
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toContain("lid=102");
+    });
+
+    it("does not append lid param when omitted", async () => {
+      mockCsvResponse(`${header}\n`);
+      await client.getPlayerPitchStats({ year: 2058 });
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).not.toContain("lid=");
+    });
+
+    it("parses CSV rows into PlayerPitchStatLine objects", async () => {
+      mockCsvResponse(`${header}\n461,53,2058,96,0,101,2,1,11,37,0,5,10,50,0,8,4,3,15,9,186,1,8,0,2,0,0,4,1,4,0,0,0,0,0,0,1,1,1,0,0,1,1,8,0,0,1,0,0,11.0,1.0,0.5626,66.7,0,34,3,1,0.2371,0.3254`);
+      const result = await client.getPlayerPitchStats({ year: 2058, lid: 101 });
+      expect(result).toHaveLength(1);
+      expect(result[0].player_id).toBe(53);
+      expect(result[0].league_id).toBe(101);
+      expect(result[0].level_id).toBe(2);
+      expect(result[0].ip).toBe(11);
+      expect(result[0].k).toBe(10);
+      expect(result[0].war).toBe(0.2371);
+    });
+
+    it("returns empty array for HTTP 204 (preseason / no content)", async () => {
+      mockCsvResponse("", 204);
+      const result = await client.getPlayerPitchStats({ year: 2059 });
+      expect(result).toEqual([]);
     });
   });
 
@@ -256,6 +349,21 @@ describe("StatsPlusClient", () => {
       mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(initMsg) });
       await client.startRatingsJob();
       expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("throws on rate-limit response", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true, status: 200,
+        text: () => Promise.resolve("Request too soon, wait 45 seconds before requesting again"),
+      });
+      await expect(client.startRatingsJob()).rejects.toThrow("rate-limited");
+    });
+
+    it("strips trailing punctuation from poll URL", async () => {
+      const msgWithPunctuation = "Request received, please check https://statsplus.net/myleague/api/mycsv/?request=test-uuid). for output.";
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(msgWithPunctuation) });
+      const result = await client.startRatingsJob();
+      expect(result.poll_url).toBe("https://statsplus.net/myleague/api/mycsv/?request=test-uuid");
     });
   });
 
@@ -394,6 +502,20 @@ describe("StatsPlusClient", () => {
       expect(result).toHaveLength(1);
     });
 
+    it("throws after exhausting all poll attempts", async () => {
+      const inProgressMsg = "Request ID abc-123 still in progress, check back soon";
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(inProgressMsg) });
+      // Mock 20 in-progress responses (MAX_ATTEMPTS)
+      for (let i = 0; i < 19; i++) {
+        mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(inProgressMsg) });
+      }
+
+      const promise = client.getRatings({ poll_url: "https://statsplus.net/myleague/api/mycsv/?request=test-uuid" });
+      const assertion = expect(promise).rejects.toThrow("timed out");
+      await vi.runAllTimersAsync();
+      await assertion;
+    });
+
     it("filters by player_ids when poll_url is provided", async () => {
       const multiCsv = "ID,player_id,team_id,overall\n65,65,7,14\n99,99,5,12\n";
       mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: () => Promise.resolve(multiCsv) });
@@ -518,6 +640,15 @@ describe("StatsPlusClient", () => {
       mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Bob,Jones,5,5,MLB,RP,Reliever,30,`);
       const result = await c.getPlayers();
       expect(result).toHaveLength(2);
+    });
+
+    it("filters by both team_id and org_id", async () => {
+      const c = new StatsPlusClient({ leagueUrl: "testleague" });
+      mockCsvResponse(`${header}\n1,John,Doe,7,851,MLB,SP,Starter,28,\n2,Jane,Smith,93,851,A,OF,Starter,22,\n3,Bob,Jones,7,5,MLB,RP,Reliever,30,`);
+      // team_id=7 gives rows 1 and 3, then org_id=851 narrows to just row 1
+      const result = await c.getPlayers({ team_id: 7, org_id: 851 });
+      expect(result).toHaveLength(1);
+      expect(result[0].ID).toBe(1);
     });
 
     it("uses cached players on second call within TTL", async () => {
@@ -663,6 +794,19 @@ describe("StatsPlusClient", () => {
       mockCsvResponse(`${header}\n${row1}\n${row2}`);
       const result = await client.getContracts();
       expect(result).toHaveLength(2);
+    });
+
+    it("filters by both team_id and player_id", async () => {
+      mockCsvResponse(`${header}\n${row1}\n${row2}`);
+      const result = await client.getContracts({ team_id: 851, player_id: 65 });
+      expect(result).toHaveLength(1);
+      expect(result[0].player_id).toBe(65);
+    });
+
+    it("returns empty when team_id and player_id match different rows", async () => {
+      mockCsvResponse(`${header}\n${row1}\n${row2}`);
+      const result = await client.getContracts({ team_id: 851, player_id: 99 });
+      expect(result).toHaveLength(0);
     });
   });
 
