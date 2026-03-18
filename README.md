@@ -45,16 +45,6 @@ Replace:
 - `<csrftoken>` — the `csrftoken` cookie value from your browser
 - `/path/to/StatsPlus-MCP` — the absolute path where you cloned this repo
 
-### Local development
-
-Copy `.env.example` to `.env` and fill in your credentials:
-
-```bash
-cp .env.example .env
-```
-
-`.env` is gitignored and will not be committed.
-
 ## Available Tools
 
 | Tool | Description | Parameters |

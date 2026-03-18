@@ -13,7 +13,6 @@ src/
 tests/
   client.test.ts  – Unit tests for StatsPlusClient
   tools.test.ts   – Unit tests for tool dispatch
-.env.example  – Template for local credentials (copy to .env)
 ```
 
 ## Environment Variables
@@ -25,7 +24,7 @@ tests/
 
 **Authentication note:** The StatsPlus API requires you to be logged in to your league at `https://statsplus.net/<LGURL>` and linked to a team. Pass your session cookie via `STATSPLUS_COOKIE` in the format `sessionid=<value>;csrftoken=<value>`.
 
-**Local development:** Copy `.env.example` to `.env` and fill in your credentials. `.env` is gitignored.
+Both variables are configured in your MCP client config (e.g. `~/.claude/mcp.json`).
 
 ## Available Tools
 
