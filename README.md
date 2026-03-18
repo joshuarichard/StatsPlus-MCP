@@ -30,7 +30,31 @@ The StatsPlus API requires an active browser session. To get your cookie:
    sessionid=<value>;csrftoken=<value>
    ```
 
-### Adding to Claude Code
+### Adding to your MCP client
+
+Add the following to your MCP client config (e.g. `~/.claude/mcp.json` for Claude Code):
+
+```json
+{
+  "mcpServers": {
+    "statsplus": {
+      "command": "node",
+      "args": ["/path/to/StatsPlus-MCP/dist/index.js"],
+      "env": {
+        "STATSPLUS_LEAGUE_URL": "<your-league-url>",
+        "STATSPLUS_COOKIE": "sessionid=<sessionid>;csrftoken=<csrftoken>"
+      }
+    }
+  }
+```
+
+Replace:
+- `/path/to/StatsPlus-MCP` — the absolute path where you cloned this repo
+- `<your-league-url>` — your league's URL slug (e.g. `myleague`, `mlb2025`)
+- `<sessionid>` — the `sessionid` cookie value from your browser
+- `<csrftoken>` — the `csrftoken` cookie value from your browser
+
+Alternatively, with the Claude Code CLI:
 
 ```bash
 claude mcp add statsplus \
@@ -38,12 +62,6 @@ claude mcp add statsplus \
   -e "STATSPLUS_COOKIE=sessionid=<sessionid>;csrftoken=<csrftoken>" \
   -- node /path/to/StatsPlus-MCP/dist/index.js
 ```
-
-Replace:
-- `<your-league-url>` — your league's URL slug (e.g. `myleague`, `mlb2025`)
-- `<sessionid>` — the `sessionid` cookie value from your browser
-- `<csrftoken>` — the `csrftoken` cookie value from your browser
-- `/path/to/StatsPlus-MCP` — the absolute path where you cloned this repo
 
 ## Available Tools
 
