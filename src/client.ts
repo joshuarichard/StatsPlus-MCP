@@ -227,6 +227,15 @@ export class StatsPlusClient {
   private async initiateRatingsJob(): Promise<string> {
     const initResponse = await this.fetch("/ratings/");
     const initText = await initResponse.text();
+
+    // Handle rate-limit response: "Request too soon, wait X seconds before requesting again"
+    const waitMatch = initText.match(/wait (\d+) seconds/);
+    if (waitMatch) {
+      throw new Error(
+        `Ratings job rate-limited — wait ${waitMatch[1]} seconds before requesting again.`
+      );
+    }
+
     const urlMatch = initText.match(/https?:\/\/[^\s]*\?request=[^\s]+/);
     if (!urlMatch) {
       throw new Error(`Unexpected /ratings/ response: ${initText}`);
