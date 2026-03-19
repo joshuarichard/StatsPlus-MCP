@@ -205,6 +205,9 @@ The ratings CSV uses specific field names that differ from intuitive guesses. Ke
 **Durability:** `Prone` (Injury Proneness) — values: Normal, Durable, Fragile, Wrecked
 **Player info:** `ID`, `Name`, `Pos` (string: "SP", "CL", "LF", etc.), `Age`, `Bats` (L/R/S), `Throws` (L/R), `Team`, `Org`, `League`, `LgLvl`, `Height`
 
+### `get_game_history` field mapping is counterintuitive
+In the game history data, `runs1`/`hits1`/`errors1` belong to the **home team** and `runs0`/`hits0`/`errors0` belong to the **away team**. This is the opposite of what you'd expect from the `home_team`/`away_team` field naming. Similarly, `starter1` is the home starter and `starter0` is the away starter. Verified by cross-referencing known W-L records.
+
 ### No trade history endpoint
 The StatsPlus API does not expose historical trade data. The `/trade/` path returns the current trade block only (active listings by GMs). The `/recap/` path contains HTML game recaps, not structured transaction data. To analyze trade history, export transactions from the in-game OOTP interface as CSV files.
 
