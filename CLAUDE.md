@@ -175,6 +175,39 @@ When analyzing a roster's future payroll or trade value, always account for this
 ### `get_players` filtering is client-side
 Both `team_id` and `org_id` filter the response after fetching the full roster from a shared cache. `org_id` filters by `Parent Team ID`. For full-org lookups, prefer `org_id` over iterating `team_id` per affiliate. Use `find_player(name)` for single-player name lookups — it avoids needing to process the full roster in the context window.
 
+### Ratings async job is rate-limited (~4 minutes between jobs)
+If you start a new ratings job too soon after the previous one, it may silently return stale data or fail. Wait at least 4 minutes between `start_ratings_job` calls. Within a single workflow, start the job once early, save the `poll_url`, and reuse it for all `get_ratings` calls.
+
+### `get_contract_extensions` returns an extremely large payload
+The full extensions dataset can exceed 14M characters — it will always save to file. Plan to process it with scripts or subagents rather than reading inline.
+
+### `get_players` field reference
+Key fields in the player registry data:
+- `Pos` is **numeric**: 1=P, 2=C, 3=1B, 4=2B, 5=3B, 6=SS, 7=LF, 8=CF, 9=RF
+- `Role`: 0=position player, 11=SP, 12=RP, 13=CL
+- `Level`: 1=MLB, 2=AAA, 3=AA, 4=A+, 5=A, 6=Rk. During the **draft phase only**, Level=10 means college amateur and Level=11 means high school amateur (with non-zero Team IDs for their amateur pool org). Free agents and IFAs remain Level=0, Team ID=0.
+- `Age`, `Retired` (0 or 1), `First Name`, `Last Name`, `ID`, `Team ID`, `Parent Team ID`
+
+### Ratings field name reference
+The ratings CSV uses specific field names that differ from intuitive guesses. Key mappings:
+
+**Pitching (current, split by batter handedness):** `Ctrl_R`, `Ctrl_L`, `Stf_R`, `Stf_L`, `Mov_R`, `Mov_L`
+**Pitching (potential, no splits):** `PotCtrl`, `PotStf`, `PotMov`
+**Batting (current, split by pitcher handedness):** `Pow_R`, `Pow_L`, `Cntct_R`, `Cntct_L`, `Eye_R`, `Eye_L`, `Gap_R`, `Gap_L`, `Ks_R`, `Ks_L`
+**Batting (potential, no splits):** `PotPow`, `PotCntct`, `PotEye`, `PotGap`, `PotKs`
+**Pitch arsenal (current/potential):** `Fst`/`PotFst`, `Chg`/`PotChg`, `Crv`/`PotCrv`, `Sld`/`PotSld`, `Cutt`/`PotCutt`, `Snk`/`PotSnk`, `Splt`/`PotSplt`, `CirChg`/`PotCirChg`, `Knbl`/`PotKnbl`, `Kncrv`/`PotKncrv`, `Scr`/`PotScr`, `Frk`/`PotFrk`
+**Pitching misc:** `Vel` (string, e.g. "93-95"), `Stm` (stamina), `GB` (ground ball %), `Hold` (composure under pressure)
+**Speed/baserunning:** `Speed`, `Steal`, `Run`, `StlRt`, `BuntHit`, `SacBunt`
+**Defense:** `C`/`PotC`, `1B`/`Pot1B`, `2B`/`Pot2B`, `SS`/`PotSS`, `3B`/`Pot3B`, `LF`/`PotLF`, `CF`/`PotCF`, `RF`/`PotRF`
+**Catcher tools:** `CArm`, `CBlk`, `CFrm` (no potential versions)
+**Infield/Outfield tools:** `IFR`/`IFE`/`IFA` (range/error/arm), `OFR`/`OFE`/`OFA`
+**Personality:** `Int` (Intelligence), `WrkEthic`, `Lead`, `Acc` (Adaptability), `Loy` (Loyalty), `Greed` — values: N/L/A/H/VH
+**Durability:** `Prone` (Injury Proneness) — values: Normal, Durable, Fragile, Wrecked
+**Player info:** `ID`, `Name`, `Pos` (string: "SP", "CL", "LF", etc.), `Age`, `Bats` (L/R/S), `Throws` (L/R), `Team`, `Org`, `League`, `LgLvl`, `Height`
+
+### No trade history endpoint
+The StatsPlus API does not expose historical trade data. The `/trade/` path returns the current trade block only (active listings by GMs). The `/recap/` path contains HTML game recaps, not structured transaction data. To analyze trade history, export transactions from the in-game OOTP interface as CSV files.
+
 ## Adding New Endpoints
 
 1. Verify the endpoint against the live API with `curl` using `year=<latest>` to confirm it returns data
