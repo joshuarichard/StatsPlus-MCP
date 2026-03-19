@@ -164,6 +164,14 @@ Calling `get_player_batting_stats(pid=X)` with no year returns every season on r
 ### Contracts for minor leaguers show $0 salary
 Minor league contracts in `get_contracts` have all `salary0`–`salary14` fields as 0. The `contract_team_id` reflects the MLB parent org, while `team_id` is the current affiliate. `is_major: 0` identifies minor league deals. `season_year: 0` on minor league contracts (vs actual year on MLB deals).
 
+### Contract data does not indicate team control status
+The `/contract/` API has no service time, arbitration year, or team-control-remaining field. Pre-arbitration, arbitration-eligible, and final-year free agents all appear as 1-year contracts (`years: 1, current_year: 0`). Use salary level and player age to infer status:
+- **Pre-arbitration** (~$900K, typically age 22–25): League minimum salary, player is under team control for multiple years. Do NOT assume they will hit free agency.
+- **Arbitration-eligible** ($1–8M, typically age 25–28): Higher salary but still a 1-year auto-renewing deal under team control. These players are not free agents yet.
+- **Negotiated free-agent deal**: Usually multi-year (`years > 1`) and/or high AAV. This is the only case where contract expiration means the player actually walks.
+
+When analyzing a roster's future payroll or trade value, always account for this distinction — a team's pre-arb stars are cheap AND controlled, not "expiring."
+
 ### `get_players` filtering is client-side
 Both `team_id` and `org_id` filter the response after fetching the full roster from a shared cache. `org_id` filters by `Parent Team ID`. For full-org lookups, prefer `org_id` over iterating `team_id` per affiliate. Use `find_player(name)` for single-player name lookups — it avoids needing to process the full roster in the context window.
 

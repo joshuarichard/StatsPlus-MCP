@@ -111,7 +111,7 @@ export const toolDefinitions = [
   },
   {
     name: "get_contracts",
-    description: "Retrieve all current and active player contracts.",
+    description: "Retrieve all current and active player contracts. IMPORTANT: The API does not expose service time or team control status. A 1-year contract does NOT necessarily mean the player will hit free agency — pre-arbitration players (~$900K salary) and arbitration-eligible players ($1–8M salary) both show as 1-year deals that auto-renew under team control. Only multi-year contracts or high-AAV 1-year deals indicate a negotiated free-agent signing. Use salary level and player age to infer team control status.",
     inputSchema: z.object({
       team_id: z.number().int().positive().optional()
         .describe("MLB team ID — filters by the team that holds the contract (contract_team_id)"),
